@@ -11,7 +11,7 @@ default-run = "dotbackup"
 dirs = "6.0.0"
 expanduser = "1.2.2"
 glob = "0.3.2"
-saphyr = "0.0.3"
+saphyr = "0.0.6"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
