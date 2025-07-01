@@ -4,6 +4,7 @@ use std::fmt::Display;
 use crate::config::Config;
 use crate::{AppError, CLIOpt};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CLIExe {
 	Dotbackup,
 	Dotsetup,
@@ -39,7 +40,7 @@ pub fn cli_main(exe: CLIExe) -> Result<(), AppError> {
 			config.unwrap().setup()?;
 		}
 		CLIOpt::Help => {
-			Config::help(exe);
+			Config::help(&exe);
 		}
 		CLIOpt::List => {
 			config.unwrap().list_apps();

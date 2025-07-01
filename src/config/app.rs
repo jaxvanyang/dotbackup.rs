@@ -8,7 +8,7 @@ use expanduser::expanduser;
 use glob::Pattern;
 use saphyr::Yaml;
 
-use crate::{copy_dir_all, run_hook, AppError};
+use crate::{AppError, copy_dir_all, run_hook};
 
 use super::Config;
 
@@ -235,7 +235,11 @@ impl Display for App {
 			"{}",
 			Config::format_array(
 				"ignore",
-				&self.ignore.iter().map(|p| p.to_string()).collect(),
+				&self
+					.ignore
+					.iter()
+					.map(std::string::ToString::to_string)
+					.collect(),
 				2
 			)
 		)?;

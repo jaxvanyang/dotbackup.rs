@@ -10,7 +10,7 @@ use glob::Pattern;
 use saphyr::Yaml;
 
 use crate::cli::CLIExe;
-use crate::{run_hook, AppError, CLIOpt, VERSION};
+use crate::{AppError, CLIOpt, VERSION, run_hook};
 
 #[derive(Debug, Default)]
 pub struct Config {
@@ -42,7 +42,7 @@ impl Config {
 				Ok(vec)
 			}
 			None => Ok(Vec::new()),
-			_ => Err(AppError::ConfigError(format!("{} should be an array", key))),
+			_ => Err(AppError::ConfigError(format!("{key} should be an array"))),
 		}
 	}
 
@@ -63,12 +63,14 @@ impl Config {
 		output
 	}
 
+	#[must_use]
 	pub fn config_dir() -> PathBuf {
 		config_dir()
 			.expect("this platform should specify a configuration directory")
 			.join("dotbackup")
 	}
 
+	#[must_use]
 	pub fn default_path() -> PathBuf {
 		Self::config_dir().join("dotbackup.yml")
 	}
@@ -191,11 +193,10 @@ impl Config {
 					*opt = CLIOpt::DumpConfig;
 				}
 				_ => {
-					if arg.starts_with("-") {
+					if arg.starts_with('-') {
 						return Err(AppError::ArgError(format!("unknown argument: {arg:?}")));
-					} else {
-						selected_apps.push(arg);
 					}
+					selected_apps.push(arg);
 				}
 			}
 		}
@@ -235,7 +236,7 @@ impl Config {
 		println!("dotbackup {VERSION}");
 	}
 
-	pub fn help(exe: CLIExe) {
+	pub fn help(exe: &CLIExe) {
 		let clean_help = match exe {
 			CLIExe::Dotbackup => "Delete old backup files before backup",
 			CLIExe::Dotsetup => "Delete old configuration files before setup",
@@ -288,7 +289,11 @@ impl Display for Config {
 			"{}",
 			Self::format_array(
 				"ignore",
-				&self.ignore.iter().map(|p| p.to_string()).collect(),
+				&self
+					.ignore
+					.iter()
+					.map(std::string::ToString::to_string)
+					.collect(),
 				0
 			)
 		)?;
@@ -300,7 +305,7 @@ impl Display for Config {
 		if !self.apps.is_empty() {
 			writeln!(f, "apps:")?;
 			for app in &self.apps {
-				write!(f, "{}", app)?;
+				write!(f, "{app}")?;
 			}
 		}
 
@@ -349,7 +354,7 @@ impl TryFrom<&String> for Config {
 				_ => {
 					return Err(Self::Error::ConfigError(
 						"backup_dir should be a string".to_string(),
-					))
+					));
 				}
 			}
 
@@ -359,7 +364,7 @@ impl TryFrom<&String> for Config {
 				_ => {
 					return Err(Self::Error::ConfigError(
 						"clean should be a boolean".to_string(),
-					))
+					));
 				}
 			}
 
@@ -388,7 +393,7 @@ impl TryFrom<&String> for Config {
 				_ => {
 					return Err(Self::Error::ConfigError(
 						"apps should be a mapping".to_string(),
-					))
+					));
 				}
 			}
 

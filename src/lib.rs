@@ -22,18 +22,22 @@ pub enum AppError {
 }
 
 impl AppError {
+	#[must_use]
 	pub fn config_error(msg: &str) -> Self {
 		Self::ConfigError(msg.to_string())
 	}
 
+	#[must_use]
 	pub fn arg_error(msg: &str) -> Self {
 		Self::ArgError(msg.to_string())
 	}
 
+	#[must_use]
 	pub fn sys_error(msg: &str) -> Self {
 		Self::SysError(msg.to_string())
 	}
 
+	#[must_use]
 	pub fn new(msg: &str) -> Self {
 		Self::AppError(msg.to_string())
 	}
@@ -42,10 +46,10 @@ impl AppError {
 impl Display for AppError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			Self::ConfigError(s) => write!(f, "configuration error: {}", s),
-			Self::ArgError(s) => write!(f, "CLI argument error: {}", s),
-			Self::SysError(s) => write!(f, "system error: {}", s),
-			Self::AppError(s) => write!(f, "app error: {}", s),
+			Self::ConfigError(s) => write!(f, "configuration error: {s}"),
+			Self::ArgError(s) => write!(f, "CLI argument error: {s}"),
+			Self::SysError(s) => write!(f, "system error: {s}"),
+			Self::AppError(s) => write!(f, "app error: {s}"),
 		}
 	}
 }
@@ -71,7 +75,7 @@ fn copy_dir_all(
 		let path = entry.path();
 		for pattern in ignore {
 			if pattern.matches_path(&PathBuf::from(path.file_name().unwrap())) {
-				eprintln!("LOG: ignore {path:?}");
+				eprintln!("LOG: ignore {}", path.display());
 				return Ok(());
 			}
 		}
