@@ -9,7 +9,7 @@ use crate::{
 };
 use expanduser::expanduser;
 use glob::Pattern;
-use saphyr::Yaml;
+use saphyr::{LoadableYamlNode, Yaml};
 use std::{
 	fs::File,
 	io::Read,
@@ -48,24 +48,27 @@ impl Config {
 		Self::try_from(content.as_str())
 	}
 
-	/// Collects an array of strings from a YAML hash.
-	fn collect_array(hash: &saphyr::Hash, key: &str) -> Result<Vec<String>> {
-		match hash.get(&Yaml::from_str(key)) {
-			Some(Yaml::Array(array)) => {
-				let mut vec = Vec::new();
-				for s in array {
-					if let Yaml::String(s) = s {
-						vec.push(s.clone());
-					} else {
-						return Err(config_error!(
-							"expected element of {key} to be string, but found: {s:?}"
-						));
+	/// Collects an array of strings from a YAML mapping.
+	fn collect_array(mapping: &saphyr::Mapping, key: &str) -> Result<Vec<String>> {
+		match mapping.get(&Yaml::value_from_str(key)) {
+			Some(yaml) => {
+				if let Some(array) = yaml.as_sequence() {
+					let mut vec = Vec::new();
+					for s in array {
+						if let Some(s) = s.as_str() {
+							vec.push(s.to_string());
+						} else {
+							return Err(config_error!(
+								"expected element of {key} to be string, but found: {s:?}"
+							));
+						}
 					}
+					Ok(vec)
+				} else {
+					Err(config_error!("expected {key} to be an array"))
 				}
-				Ok(vec)
 			}
 			None => Ok(Vec::new()),
-			_ => Err(config_error!("expected {key} to be an array")),
 		}
 	}
 
@@ -245,22 +248,20 @@ impl TryFrom<&str> for Config {
 		let mut config = Self::new();
 		let yaml = &Yaml::load_from_str(value).map_err(|e| config_error!("{e}"))?[0];
 
-		if let Yaml::Hash(yaml) = yaml {
-			match yaml.get(&Yaml::from_str("backup_dir")) {
-				Some(Yaml::String(s)) => {
+		if let Some(yaml) = yaml.as_mapping() {
+			if let Some(backup_dir) = yaml.get(&Yaml::value_from_str("backup_dir")) {
+				if let Some(s) = backup_dir.as_str() {
 					config.backup_dir =
 						Some(expanduser(s).map_err(|e| config_error!("expanduser error: {e}"))?);
-				}
-				None => (),
-				_ => {
+				} else {
 					return Err(config_error!("expected backup_dir to be a string"));
 				}
 			}
 
-			match yaml.get(&Yaml::from_str("clean")) {
-				Some(Yaml::Boolean(b)) => config.clean = *b,
-				None => (),
-				_ => {
+			if let Some(clean) = yaml.get(&Yaml::value_from_str("clean")) {
+				if let Some(b) = clean.as_bool() {
+					config.clean = b;
+				} else {
 					return Err(config_error!("expected clean to be a boolean"));
 				}
 			}
@@ -271,10 +272,10 @@ impl TryFrom<&str> for Config {
 					.push(Pattern::new(&glob).map_err(|e| config_error!("invalid glob: {e}"))?);
 			}
 
-			match yaml.get(&Yaml::from_str("apps")) {
-				Some(Yaml::Hash(app_hash)) => {
+			if let Some(apps) = yaml.get(&Yaml::value_from_str("apps")) {
+				if let Some(app_hash) = apps.as_mapping() {
 					for (name, value) in app_hash {
-						if let Yaml::String(name) = name {
+						if let Some(name) = name.as_str() {
 							let app = App::load_from_config(name, value)?;
 							config.apps.push(app);
 						} else {
@@ -283,9 +284,7 @@ impl TryFrom<&str> for Config {
 							));
 						}
 					}
-				}
-				None => (),
-				_ => {
+				} else {
 					return Err(config_error!("expected apps to be a mapping"));
 				}
 			}
