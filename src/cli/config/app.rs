@@ -30,7 +30,7 @@ impl App {
 	}
 
 	pub fn load_from_config(name: &str, config: &Yaml) -> Result<Self> {
-		if let Yaml::Hash(config) = config {
+		if let Yaml::Mapping(config) = config {
 			let mut app = Self::new(name);
 
 			for file in Config::collect_array(config, "files")? {
