@@ -15,3 +15,4 @@ saphyr = "0.0.3"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"

@@ -1,11 +1,18 @@
+use dotbackup::Cli;
 use std::process::ExitCode;
 
-use dotbackup::cli::{CLIExe, cli_main};
-
 fn main() -> ExitCode {
-	if let Err(e) = cli_main(CLIExe::Dotsetup) {
+	let cli = match Cli::dotsetup().parse_args() {
+		Ok(cli) => cli,
+		Err(e) => {
+			eprintln!("{e}");
+			return ExitCode::FAILURE;
+		}
+	};
+
+	if let Err(e) = cli.run() {
 		eprintln!("{e}");
-		ExitCode::from(1)
+		ExitCode::FAILURE
 	} else {
 		ExitCode::SUCCESS
 	}

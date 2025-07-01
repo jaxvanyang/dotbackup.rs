@@ -1,18 +1,15 @@
+use super::Config;
+use crate::{arg_error, config_error, copy_dir_all, error::Result, run_hook, sys_error};
+use expanduser::expanduser;
+use glob::Pattern;
+use saphyr::Yaml;
 use std::{
 	fmt::Display,
 	fs::{self, create_dir_all, remove_dir_all, remove_file},
 	path::{Path, PathBuf},
 };
 
-use expanduser::expanduser;
-use glob::Pattern;
-use saphyr::Yaml;
-
-use crate::{AppError, copy_dir_all, run_hook};
-
-use super::Config;
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct App {
 	pub name: String,
 	pub files: Vec<PathBuf>,
@@ -24,49 +21,47 @@ pub struct App {
 }
 
 impl App {
-	pub fn load_from_config(name: &str, config: &Yaml) -> Result<Self, AppError> {
-		if let Yaml::Hash(config) = config {
-			let files = Config::collect_array(config, "files")?
-				.iter()
-				.map(|s| expanduser(s).expect("file should be a path"))
-				.collect();
-
-			let mut ignore = Vec::new();
-			for glob in Config::collect_array(config, "ignore")? {
-				ignore.push(
-					Pattern::new(&glob)
-						.map_err(|e| AppError::ConfigError(format!("invalid glob: {e}")))?,
-				);
-			}
-
-			let pre_backup = Config::collect_array(config, "pre_backup")?;
-			let post_backup = Config::collect_array(config, "post_backup")?;
-			let pre_setup = Config::collect_array(config, "pre_setup")?;
-			let post_setup = Config::collect_array(config, "post_setup")?;
-
-			Ok(Self {
-				name: name.to_string(),
-				files,
-				ignore,
-				pre_backup,
-				post_backup,
-				pre_setup,
-				post_setup,
-			})
-		} else {
-			Err(AppError::ConfigError(
-				"app value should be a mapping".to_string(),
-			))
+	#[must_use]
+	pub fn new(name: &str) -> Self {
+		Self {
+			name: name.to_string(),
+			..Default::default()
 		}
 	}
 
+	pub fn load_from_config(name: &str, config: &Yaml) -> Result<Self> {
+		if let Yaml::Hash(config) = config {
+			let mut app = Self::new(name);
+
+			for file in Config::collect_array(config, "files")? {
+				app.files
+					.push(expanduser(file).map_err(|e| arg_error!("expanduser error: {e}"))?);
+			}
+
+			for glob in Config::collect_array(config, "ignore")? {
+				app.ignore
+					.push(Pattern::new(&glob).map_err(|e| arg_error!("invalid glob: {e}"))?);
+			}
+
+			app.pre_backup = Config::collect_array(config, "pre_backup")?;
+			app.post_backup = Config::collect_array(config, "post_backup")?;
+			app.pre_setup = Config::collect_array(config, "pre_setup")?;
+			app.post_setup = Config::collect_array(config, "post_setup")?;
+
+			Ok(app)
+		} else {
+			Err(arg_error!("expected app {name} to a mapping"))
+		}
+	}
+
+	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn backup(
 		&self,
 		config_root: &Path,
 		backup_dir: &Path,
 		clean: bool,
 		global_ignore: &[Pattern],
-	) -> Result<(), AppError> {
+	) -> Result<()> {
 		let n = self.pre_backup.len();
 		for (i, hook) in self.pre_backup.iter().enumerate() {
 			println!(
@@ -82,10 +77,10 @@ impl App {
 		ignore.extend(global_ignore.to_owned());
 		for src in &self.files {
 			if !src.starts_with(config_root) {
-				return Err(AppError::ConfigError(format!(
+				return Err(config_error!(
 					"configuration file not under configuration root: {}",
 					src.to_str().unwrap()
-				)));
+				));
 			}
 
 			if !src.exists() {
@@ -98,27 +93,24 @@ impl App {
 				if !dest_dir.exists() {
 					println!("MKDIR: {dest_dir:?}");
 					create_dir_all(dest_dir)
-						.map_err(|e| AppError::SysError(format!("create directory error: {e}")))?;
+						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
 			if clean && dest.exists() {
 				println!("CLEAN: remove {dest:?}");
 				if dest.is_file() {
-					remove_file(&dest)
-						.map_err(|e| AppError::SysError(format!("remove file error: {e}")))?;
+					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
-					remove_dir_all(&dest)
-						.map_err(|e| AppError::SysError(format!("remove directory error: {e}")))?;
+					remove_dir_all(&dest).map_err(|e| sys_error!("remove directory error: {e}"))?;
 				}
 			}
 
 			println!("COPY: {src:?} -> {dest:?}");
 			if src.is_file() {
-				fs::copy(src, dest)
-					.map_err(|e| AppError::SysError(format!("copy file error: {e}")))?;
+				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
 				copy_dir_all(src, dest, &ignore)
-					.map_err(|e| AppError::SysError(format!("copy directory error: {e}")))?;
+					.map_err(|e| sys_error!("copy directory error: {e}"))?;
 			}
 		}
 
@@ -135,13 +127,14 @@ impl App {
 		Ok(())
 	}
 
+	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn setup(
 		&self,
 		config_root: &Path,
 		backup_dir: &Path,
 		clean: bool,
 		global_ignore: &[Pattern],
-	) -> Result<(), AppError> {
+	) -> Result<()> {
 		let n = self.pre_setup.len();
 		for (i, hook) in self.pre_setup.iter().enumerate() {
 			println!(
@@ -157,10 +150,10 @@ impl App {
 		ignore.extend(global_ignore.to_owned());
 		for dest in &self.files {
 			if !dest.starts_with(config_root) {
-				return Err(AppError::ConfigError(format!(
+				return Err(config_error!(
 					"configuration file not under configuration root: {}",
-					dest.to_str().unwrap()
-				)));
+					dest.display()
+				));
 			}
 
 			let src = backup_dir.join(dest.strip_prefix(config_root).unwrap());
@@ -173,27 +166,24 @@ impl App {
 				if !dest_dir.exists() {
 					println!("MKDIR: {dest_dir:?}");
 					create_dir_all(dest_dir)
-						.map_err(|e| AppError::SysError(format!("create directory error: {e}")))?;
+						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
 			if clean && dest.exists() {
 				println!("CLEAN: remove {dest:?}");
 				if dest.is_file() {
-					remove_file(dest)
-						.map_err(|e| AppError::SysError(format!("remove file error: {e}")))?;
+					remove_file(dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
-					remove_dir_all(dest)
-						.map_err(|e| AppError::SysError(format!("remove directory error: {e}")))?;
+					remove_dir_all(dest).map_err(|e| sys_error!("remove directory error: {e}"))?;
 				}
 			}
 
 			println!("COPY: {src:?} -> {dest:?}");
 			if src.is_file() {
-				fs::copy(src, dest)
-					.map_err(|e| AppError::SysError(format!("copy file error: {e}")))?;
+				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
 				copy_dir_all(src, dest, &ignore)
-					.map_err(|e| AppError::SysError(format!("copy directory error: {e}")))?;
+					.map_err(|e| sys_error!("copy directory error: {e}"))?;
 			}
 		}
 
@@ -243,6 +233,8 @@ impl Display for App {
 				2
 			)
 		)?;
+
+		// TODO: pretty print multi-line string
 		write!(
 			f,
 			"{}",
