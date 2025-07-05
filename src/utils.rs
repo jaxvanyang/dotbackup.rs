@@ -77,7 +77,7 @@ pub fn run_hook(script: &str, backup_dir: &Path) -> Result<()> {
 pub fn run_hooks(hooks: &[String], backup_dir: &Path, name: &str) -> Result<()> {
 	let n = hooks.len();
 	for (i, hook) in hooks.iter().enumerate() {
-		info!(":: Running {name} ({}/{n})...", i + 1);
+		info!("Running {name} ({}/{n})...", i + 1);
 		run_hook(hook, backup_dir)?;
 	}
 

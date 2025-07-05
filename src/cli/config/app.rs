@@ -68,7 +68,7 @@ impl App {
 			&format!("pre-backup hooks for {}", self.name),
 		)?;
 
-		info!(":: Starting backup for {}...", self.name);
+		info!("Starting backup for {}...", self.name);
 		let mut ignore = self.ignore.clone();
 		ignore.extend(config.ignore.clone());
 		for src in &self.files {
@@ -81,20 +81,20 @@ impl App {
 			}
 
 			if !src.exists() {
-				warn!("SKIP: file not found: {src:?}");
+				warn!("LOG: skip: file not found: {src:?}");
 				continue;
 			}
 
 			let dest = backup_dir.join(src.strip_prefix(&config_root).unwrap());
 			if let Some(dest_dir) = dest.parent() {
 				if !dest_dir.exists() {
-					log!(config.verbose, "MKDIR: {dest_dir:?}");
+					log!(config.verbose, "LOG: mkdir {dest_dir:?}");
 					create_dir_all(dest_dir)
 						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
 			if config.clean && dest.exists() {
-				log!(config.verbose, "CLEAN: remove {dest:?}");
+				log!(config.verbose, "LOG: clean: remove {dest:?}");
 				if dest.is_file() {
 					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -102,7 +102,7 @@ impl App {
 				}
 			}
 
-			eprintln!("COPY: {src:?} -> {dest:?}");
+			eprintln!("  {src:?} -> {dest:?}");
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
@@ -129,7 +129,7 @@ impl App {
 			&format!("pre-setup hooks for {}", self.name),
 		)?;
 
-		info!(":: Starting setup for {}...", self.name);
+		info!("Starting setup for {}...", self.name);
 		let mut ignore = self.ignore.clone();
 		ignore.extend(config.ignore.clone());
 		for dest in &self.files {
@@ -142,19 +142,19 @@ impl App {
 
 			let src = backup_dir.join(dest.strip_prefix(&config_root).unwrap());
 			if !src.exists() {
-				warn!("SKIP: file not found: {src:?}");
+				warn!("LOG: skip: file not found: {src:?}");
 				continue;
 			}
 
 			if let Some(dest_dir) = dest.parent() {
 				if !dest_dir.exists() {
-					log!(config.verbose, "MKDIR: {dest_dir:?}");
+					log!(config.verbose, "LOG: mkdir: {dest_dir:?}");
 					create_dir_all(dest_dir)
 						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
 			if config.clean && dest.exists() {
-				log!(config.verbose, "CLEAN: remove {dest:?}");
+				log!(config.verbose, "LOG: clean: remove {dest:?}");
 				if dest.is_file() {
 					remove_file(dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -162,7 +162,7 @@ impl App {
 				}
 			}
 
-			eprintln!("COPY: {src:?} -> {dest:?}");
+			eprintln!("  {src:?} -> {dest:?}");
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
