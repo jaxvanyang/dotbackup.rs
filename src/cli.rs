@@ -5,10 +5,7 @@ pub use action::*;
 pub use config::*;
 
 use crate::{VERSION, arg_error, error::Result, sys_error};
-use std::{
-	env,
-	path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Name {
@@ -68,21 +65,8 @@ impl Cli {
 		self
 	}
 
-	pub fn apply_config(&mut self, config_path: &Path) -> Result<()> {
-		let config = Config::from_file(config_path)?;
-		let clean = if self.config.clean {
-			true
-		} else {
-			config.clean
-		};
-
-		self.config = Config {
-			clean,
-			selected_apps: self.config.selected_apps.clone(),
-			..config
-		};
-
-		Ok(())
+	pub fn config_root() -> Result<PathBuf> {
+		dirs::home_dir().ok_or(sys_error!("unknown system, cannot decide home directory"))
 	}
 
 	pub fn config_dir() -> Result<PathBuf> {
@@ -112,14 +96,15 @@ impl Cli {
 					let file_path = args
 						.next()
 						.ok_or(arg_error!("expected a file path after option {arg}"))?;
-					self.apply_config(&PathBuf::from(file_path))?;
+					self.config.apply_file(&PathBuf::from(file_path))?;
 					config_parsed = true;
 				}
 				"-c" | "--config" => {
 					let config_name = args.next().ok_or(arg_error!(
 						"expected a configuration name after option {arg}"
 					))?;
-					self.apply_config(&Self::config_dir()?.join(format!("{config_name}.yml")))?;
+					self.config
+						.apply_file(&Self::config_dir()?.join(format!("{config_name}.yml")))?;
 					config_parsed = true;
 				}
 				"-l" | "--list" => {
@@ -127,7 +112,7 @@ impl Cli {
 				}
 				"--clean" => self.config.clean = true,
 				"-V" | "--version" => return Ok(self.action(Action::Version)),
-				"-v" | "--verbose" => todo!(),
+				"-v" | "--verbose" => self.config.verbose = true,
 				"--dump-config" => self.action = Action::DumpConfig,
 				_ => {
 					if arg.starts_with('-') {
@@ -139,7 +124,7 @@ impl Cli {
 		}
 
 		if !config_parsed {
-			self.apply_config(&Self::default_config_path()?)?;
+			self.config.apply_file(&Self::default_config_path()?)?;
 		}
 
 		Ok(self)

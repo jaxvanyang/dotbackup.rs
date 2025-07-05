@@ -5,7 +5,7 @@ pub use app::*;
 use crate::{
 	arg_error, config_error,
 	error::{Error, Result},
-	run_hook, sys_error,
+	run_hooks, sys_error,
 };
 use expanduser::expanduser;
 use glob::Pattern;
@@ -18,9 +18,10 @@ use std::{
 
 #[derive(Debug, Clone, Default)]
 pub struct Config {
-	// CLI args may change these
+	// NOTE: CLI args may change these, be sure to consider them in `apply_file`
 	pub selected_apps: Vec<String>,
 	pub clean: bool,
+	pub verbose: bool,
 
 	pub backup_dir: Option<PathBuf>,
 	pub ignore: Vec<Pattern>,
@@ -95,30 +96,27 @@ impl Config {
 		}
 	}
 
-	pub fn backup(&self) -> Result<()> {
-		let backup_dir = self
-			.backup_dir
-			.clone()
-			.ok_or(config_error!("backup_dir not set"))?;
-		let config_root =
-			dirs::home_dir().ok_or(sys_error!("unknown system, cannot decide home directory"))?;
+	pub fn get_backup_dir(&self) -> Result<&PathBuf> {
+		self.backup_dir
+			.as_ref()
+			.ok_or(config_error!("backup_dir not set"))
+	}
 
-		let n = self.pre_backup.len();
-		for (i, hook) in self.pre_backup.iter().enumerate() {
-			println!(":: Running pre-backup hooks ({}/{n})...", i + 1);
-			run_hook(hook, &backup_dir)?;
-		}
+	pub fn backup(&self) -> Result<()> {
+		let backup_dir = self.get_backup_dir()?;
+
+		run_hooks(&self.pre_backup, backup_dir, "pre-backup hooks")?;
 
 		if self.selected_apps.is_empty() {
 			for app in &self.apps {
-				app.backup(&config_root, &backup_dir, self.clean, &self.ignore)?;
+				app.backup(self)?;
 			}
 		} else {
 			for selected in &self.selected_apps {
 				let mut found = false;
 				for app in &self.apps {
 					if *selected == app.name {
-						app.backup(&config_root, &backup_dir, self.clean, &self.ignore)?;
+						app.backup(self)?;
 						found = true;
 						break;
 					}
@@ -130,56 +128,48 @@ impl Config {
 			}
 		}
 
-		let n = self.post_backup.len();
-		for (i, hook) in self.post_backup.iter().enumerate() {
-			println!(":: Running post-backup hooks ({}/{n})...", i + 1);
-			run_hook(hook, &backup_dir)?;
-		}
-
-		Ok(())
+		run_hooks(&self.post_backup, backup_dir, "post-backup hooks")
 	}
 
 	pub fn setup(&self) -> Result<()> {
-		let backup_dir = self
-			.backup_dir
-			.clone()
-			.ok_or(config_error!("backup_dir not set"))?;
-		let config_root =
-			dirs::home_dir().ok_or(sys_error!("unknown system, cannot decide home directory"))?;
+		let backup_dir = self.get_backup_dir()?;
 
-		let n = self.pre_setup.len();
-		for (i, hook) in self.pre_setup.iter().enumerate() {
-			println!(":: Running pre-setup hooks ({}/{n})...", i + 1);
-			run_hook(hook, &backup_dir)?;
-		}
+		run_hooks(&self.pre_setup, backup_dir, "pre-setup hooks")?;
 
 		if self.selected_apps.is_empty() {
 			for app in &self.apps {
-				app.setup(&config_root, &backup_dir, self.clean, &self.ignore)?;
+				app.setup(self)?;
 			}
 		} else {
 			for selected in &self.selected_apps {
 				let mut found = false;
-
 				for app in &self.apps {
 					if *selected == app.name {
-						app.setup(&config_root, &backup_dir, self.clean, &self.ignore)?;
+						app.setup(self)?;
 						found = true;
 						break;
 					}
 				}
 
 				if !found {
-					return Err(arg_error!("app not found: {selected}"));
+					return Err(arg_error!("app not found: {}", selected));
 				}
 			}
 		}
 
-		let n = self.post_setup.len();
-		for (i, hook) in self.post_setup.iter().enumerate() {
-			println!(":: Running post-setup hooks ({}/{n})...", i + 1);
-			run_hook(hook, &backup_dir)?;
-		}
+		run_hooks(&self.post_setup, backup_dir, "post-setup hooks")
+	}
+
+	pub fn apply_file(&mut self, path: &Path) -> Result<()> {
+		let config = Config::from_file(path)?;
+		let clean = if self.clean { true } else { config.clean };
+
+		*self = Self {
+			verbose: self.verbose,
+			selected_apps: self.selected_apps.clone(),
+			clean,
+			..config
+		};
 
 		Ok(())
 	}

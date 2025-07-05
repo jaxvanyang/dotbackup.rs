@@ -1,12 +1,15 @@
 use super::Config;
-use crate::{arg_error, config_error, copy_dir_all, error::Result, run_hook, sys_error};
+use crate::{
+	Cli, arg_error, config_error, copy_dir_all, error::Result, info, log, run_hooks, sys_error,
+	warn,
+};
 use expanduser::expanduser;
 use glob::Pattern;
 use saphyr::Yaml;
 use std::{
 	fmt::Display,
 	fs::{self, create_dir_all, remove_dir_all, remove_file},
-	path::{Path, PathBuf},
+	path::PathBuf,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -55,49 +58,43 @@ impl App {
 	}
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
-	pub fn backup(
-		&self,
-		config_root: &Path,
-		backup_dir: &Path,
-		clean: bool,
-		global_ignore: &[Pattern],
-	) -> Result<()> {
-		let n = self.pre_backup.len();
-		for (i, hook) in self.pre_backup.iter().enumerate() {
-			println!(
-				":: Running pre-backup hooks for {} ({}/{n})...",
-				self.name,
-				i + 1
-			);
-			run_hook(hook, backup_dir)?;
-		}
+	pub fn backup(&self, config: &Config) -> Result<()> {
+		let config_root = Cli::config_root()?;
+		let backup_dir = config.get_backup_dir()?;
 
-		println!(":: Starting backup for {}...", self.name);
+		run_hooks(
+			&self.pre_backup,
+			backup_dir,
+			&format!("pre-backup hooks for {}", self.name),
+		)?;
+
+		info!(":: Starting backup for {}...", self.name);
 		let mut ignore = self.ignore.clone();
-		ignore.extend(global_ignore.to_owned());
+		ignore.extend(config.ignore.clone());
 		for src in &self.files {
-			if !src.starts_with(config_root) {
+			if !src.starts_with(&config_root) {
 				return Err(config_error!(
-					"configuration file not under configuration root: {}",
-					src.to_str().unwrap()
+					"expected files under the configuration root ({}): {}",
+					config_root.display(),
+					src.display()
 				));
 			}
 
 			if !src.exists() {
-				println!("SKIP: file not found: {src:?}");
+				warn!("SKIP: file not found: {src:?}");
 				continue;
 			}
 
-			let dest = backup_dir.join(src.strip_prefix(config_root).unwrap());
+			let dest = backup_dir.join(src.strip_prefix(&config_root).unwrap());
 			if let Some(dest_dir) = dest.parent() {
 				if !dest_dir.exists() {
-					println!("MKDIR: {dest_dir:?}");
+					log!(config.verbose, "MKDIR: {dest_dir:?}");
 					create_dir_all(dest_dir)
 						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
-			if clean && dest.exists() {
-				println!("CLEAN: remove {dest:?}");
+			if config.clean && dest.exists() {
+				log!(config.verbose, "CLEAN: remove {dest:?}");
 				if dest.is_file() {
 					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -105,72 +102,59 @@ impl App {
 				}
 			}
 
-			println!("COPY: {src:?} -> {dest:?}");
+			eprintln!("COPY: {src:?} -> {dest:?}");
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
-				copy_dir_all(src, dest, &ignore)
+				copy_dir_all(src, dest, &ignore, config.verbose)
 					.map_err(|e| sys_error!("copy directory error: {e}"))?;
 			}
 		}
 
-		let n = self.post_backup.len();
-		for (i, hook) in self.post_backup.iter().enumerate() {
-			println!(
-				":: Running post-backup hooks for {} ({}/{n})...",
-				self.name,
-				i + 1
-			);
-			run_hook(hook, backup_dir)?;
-		}
-
-		Ok(())
+		run_hooks(
+			&self.post_backup,
+			backup_dir,
+			&format!("post-backup hooks for {}", self.name),
+		)
 	}
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
-	pub fn setup(
-		&self,
-		config_root: &Path,
-		backup_dir: &Path,
-		clean: bool,
-		global_ignore: &[Pattern],
-	) -> Result<()> {
-		let n = self.pre_setup.len();
-		for (i, hook) in self.pre_setup.iter().enumerate() {
-			println!(
-				":: Running pre-setup hooks for {} ({}/{n})...",
-				self.name,
-				i + 1
-			);
-			run_hook(hook, backup_dir)?;
-		}
+	pub fn setup(&self, config: &Config) -> Result<()> {
+		let config_root = Cli::config_root()?;
+		let backup_dir = config.get_backup_dir()?;
 
-		println!(":: Starting setup for {}...", self.name);
+		run_hooks(
+			&self.pre_setup,
+			backup_dir,
+			&format!("pre-setup hooks for {}", self.name),
+		)?;
+
+		info!(":: Starting setup for {}...", self.name);
 		let mut ignore = self.ignore.clone();
-		ignore.extend(global_ignore.to_owned());
+		ignore.extend(config.ignore.clone());
 		for dest in &self.files {
-			if !dest.starts_with(config_root) {
+			if !dest.starts_with(&config_root) {
 				return Err(config_error!(
 					"configuration file not under configuration root: {}",
 					dest.display()
 				));
 			}
 
-			let src = backup_dir.join(dest.strip_prefix(config_root).unwrap());
+			let src = backup_dir.join(dest.strip_prefix(&config_root).unwrap());
 			if !src.exists() {
-				println!("SKIP: file not found: {src:?}");
+				warn!("SKIP: file not found: {src:?}");
 				continue;
 			}
 
 			if let Some(dest_dir) = dest.parent() {
 				if !dest_dir.exists() {
-					println!("MKDIR: {dest_dir:?}");
+					log!(config.verbose, "MKDIR: {dest_dir:?}");
 					create_dir_all(dest_dir)
 						.map_err(|e| sys_error!("create directory error: {e}"))?;
 				}
 			}
-			if clean && dest.exists() {
-				println!("CLEAN: remove {dest:?}");
+			if config.clean && dest.exists() {
+				log!(config.verbose, "CLEAN: remove {dest:?}");
 				if dest.is_file() {
 					remove_file(dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -178,26 +162,20 @@ impl App {
 				}
 			}
 
-			println!("COPY: {src:?} -> {dest:?}");
+			eprintln!("COPY: {src:?} -> {dest:?}");
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
-				copy_dir_all(src, dest, &ignore)
+				copy_dir_all(src, dest, &ignore, config.verbose)
 					.map_err(|e| sys_error!("copy directory error: {e}"))?;
 			}
 		}
 
-		let n = self.post_setup.len();
-		for (i, hook) in self.post_setup.iter().enumerate() {
-			println!(
-				":: Running post-setup hooks for {} ({}/{n})...",
-				self.name,
-				i + 1
-			);
-			run_hook(hook, backup_dir)?;
-		}
-
-		Ok(())
+		run_hooks(
+			&self.post_setup,
+			backup_dir,
+			&format!("post-setup hooks for {}", self.name),
+		)
 	}
 }
 

@@ -15,6 +15,7 @@ pub fn copy_dir_all(
 	from: impl AsRef<Path>,
 	to: impl AsRef<Path>,
 	ignore: &Vec<Pattern>,
+	verbose: bool,
 ) -> io::Result<()> {
 	fs::create_dir_all(&to)?;
 
@@ -24,13 +25,18 @@ pub fn copy_dir_all(
 
 		for pattern in ignore {
 			if pattern.matches_path(&PathBuf::from(path.file_name().unwrap())) {
-				eprintln!("LOG: ignore {}", path.display());
+				log!(verbose, "LOG: ignore {}", path.display());
 				return Ok(());
 			}
 		}
 
 		if entry.file_type()?.is_dir() {
-			copy_dir_all(entry.path(), to.as_ref().join(entry.file_name()), ignore)?;
+			copy_dir_all(
+				entry.path(),
+				to.as_ref().join(entry.file_name()),
+				ignore,
+				verbose,
+			)?;
 		} else {
 			fs::copy(entry.path(), to.as_ref().join(entry.file_name()))?;
 		}
@@ -47,12 +53,15 @@ pub fn run_hook(script: &str, backup_dir: &Path) -> Result<()> {
 		.stdin(Stdio::piped())
 		.spawn()
 		.map_err(|e| sys_error!("failed to spawn sh: {e}"))?;
+
 	sh.stdin
 		.take()
 		.ok_or(sys_error!("failed to open stdin of sh"))?
 		.write_all(script.as_bytes())
 		.map_err(|e| sys_error!("failed to write stdin of sh: {e}"))?;
+
 	let status = sh.wait().map_err(|e| sys_error!("{e}"))?;
+
 	if status.success() {
 		Ok(())
 	} else {
@@ -63,4 +72,14 @@ pub fn run_hook(script: &str, backup_dir: &Path) -> Result<()> {
 			))
 		}
 	}
+}
+
+pub fn run_hooks(hooks: &[String], backup_dir: &Path, name: &str) -> Result<()> {
+	let n = hooks.len();
+	for (i, hook) in hooks.iter().enumerate() {
+		info!(":: Running {name} ({}/{n})...", i + 1);
+		run_hook(hook, backup_dir)?;
+	}
+
+	Ok(())
 }
