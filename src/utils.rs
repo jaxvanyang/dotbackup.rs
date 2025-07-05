@@ -1,3 +1,6 @@
+#[macro_use]
+pub mod log;
+
 use crate::{error::Result, sys_error};
 use glob::Pattern;
 use std::{
