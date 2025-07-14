@@ -1,0 +1,240 @@
+'\" t
+.\"     Title: dotsetup
+.\"    Author: Jax Young
+.\" Generator: Asciidoctor 2.0.23
+.\"      Date: 2025-02-19
+.\"    Manual: DOTSETUP
+.\"    Source: DOTSETUP
+.\"  Language: English
+.\"
+.TH "DOTSETUP" "1" "2025-02-19" "DOTSETUP" "DOTSETUP"
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.ss \n[.ss] 0
+.nh
+.ad l
+.de URL
+\fI\\$2\fP <\\$1>\\$3
+..
+.als MTO URL
+.if \n[.g] \{\
+.  mso www.tmac
+.  am URL
+.    ad l
+.  .
+.  am MTO
+.    ad l
+.  .
+.  LINKSTYLE blue R < >
+.\}
+.SH "NAME"
+dotsetup \- YAML config based backup utility
+.SH "SYNOPSIS"
+.sp
+\fBdotsetup\fP [\-h|\-\-help] [\-c|\-\-config \fICONFIG\fP] [\-l|\-\-list] [\-v|\-\-version]
+[\-\-clean] [\-\-log\-level \fILOG_LEVEL\fP] [\fIAPP\fP...]
+.SH "DESCRIPTION"
+.sp
+Usually people maintain backup and setup scripts along with their dotfiles. But
+these scripts always contain a lot of repeat codes, and writing them is not fun!
+dotbackup and dotsetup are here to help.
+.sp
+With these two tools, you only need to write a simple configuration and they
+will know how to back up and set up your dotfiles. See the \fICONFIGURATION\fP
+section for the configuration definition.
+.sp
+When you invoke dotbackup, it copies each application\(cqs \fIfiles\fP to the
+\fIbackup_dir\fP (if no \fIapp\fP provided, all application\(cqs \fIfiles\fP will be copied).
+And dotsetup does the opposite. Backup file\(cqs relative path to the \fIbackup_dir\fP
+is the same as the original file\(cqs relative path to the home directory, so
+dotsetup knows how to copy them back.
+.SH "OPTIONS"
+.sp
+\fB\-h, \-\-help\fP
+.RS 4
+Show help message and exit.
+.RE
+.sp
+\fB\-c, \-\-config\fP=\fICONFIG\fP
+.RS 4
+Set configuration file path (default: \fI~/.config/dotbackup/dotbackup.yml\fP).
+Configuration files under \fI~/.config/dotbackup\fP can also be specified by their
+basenames, e.g., \fI~/.config/dotbackup/config.yml\fP can be specified by
+\fIconfig\fP. See \fICONFIGURATION\fP section for configuration definition.
+.RE
+.sp
+\fB\-l, \-\-list\fP
+.RS 4
+List configured application and exit.
+.RE
+.sp
+\fB\-v, \-\-version\fP
+.RS 4
+Print the version information and exit.
+.RE
+.sp
+\fB\-\-clean\fP
+.RS 4
+Do clean setup, i.e., delete old configuration files before setup.
+.RE
+.sp
+\fB\-\-log\-level\fP \fILOG_LEVEL\fP
+.RS 4
+Set the log level, \fILOG_LEVEL\fP may be one of DEBUG, INFO, WARNING, ERROR,
+CRITICAL. The default is INFO.
+.RE
+.SH "CONFIGURATION"
+.sp
+The default configuration file path is \fI~/.config/dotbackup/dotbackup.yml\fP. The
+configuration file uses YAML syntax, following are the configuration keyword
+definitions.
+.sp
+\fIbackup_dir\fP
+.RS 4
+A string. The directory where backup files are stored.
+.RE
+.sp
+\fIclean\fP
+.RS 4
+A boolean. Whether to delete files in destination path before backup and
+setup. The default is \f(CRfalse\fP. Option \fB\-\-clean\fP override this configuration.
+.RE
+.sp
+\fIignore\fP
+.RS 4
+A list of glob strings. The global ignored file patterns. Files that matches
+one of these patterns will be ignored. But files that are directly specified
+in \fIapps.<app>.files\fP are not ignored.
+.RE
+.sp
+\fIapps.<app>.files\fP
+.RS 4
+A list of path strings. The files to be backed up of the application \fI<app>\fP,
+\fI<app>\fP can be any string. File paths \fBMUST\fP be relative to the home directory
+due to implementation. You can use \fIHOOKS\fP to manipulate other files.
+.RE
+.sp
+\fIapps.<app>.ignore\fP
+.RS 4
+A list of glob strings. The application level ignored file patterns. Files
+that matches one of these patterns will be ignored when back up and set up
+\fI<app>\fP. But files that are directly specified in \fIapps.<app>.files\fP are not
+ignored.
+.RE
+.sp
+\fIapps.<app>.<pre_backup|post_backup|pre_setup|post_setup>\fP
+.RS 4
+A list of script strings. The application level custom hooks, \fI<app>\fP can be
+any string. See \fIHOOKS\fP and \fIEXAMPLES\fP for details.
+.RE
+.sp
+\fI<pre_backup|post_backup|pre_setup|post_setup>\fP
+.RS 4
+A list of script strings. The global custom hooks. See \fIHOOKS\fP and \fIEXAMPLES\fP
+for details.
+.RE
+.SH "HOOKS"
+.sp
+Technically, hooks are just shell scripts to be executed by \f(CRsh \-s\fP. They can be
+divide into backup hooks and setup hooks. The execution order is indicated by
+their names. For example, the execution order of backup hooks may be like this:
+.sp
+pre_backup
+.br
+apps.app1.pre_backup
+.br
+copy \fIapps.app1.files\fP
+.br
+apps.app1.post_backup
+.br
+apps.app2.pre_backup
+.br
+copy \fIapps.app2.files\fP
+.br
+apps.app2.post_backup
+.br
+post_backup
+.sp
+And in hooks, you can use the environment variable \fIBACKUP_DIR\fP which is set to
+\fIbackup_dir\fP. So you can use hooks to things beyond copying \fIfiles\fP, e.g., file
+post\-processing.
+.SH "EXAMPLES"
+.sp
+First of all, dotbackup can back up itself:
+.sp
+.if n .RS 4
+.nf
+.fam C
+backup_dir: ~/backup
+apps:
+  dotbackup:
+    files: [~/.config/dotbackup/dotbackup.yml]
+.fam
+.fi
+.if n .RE
+.sp
+A configuration back up Vim and Neovim:
+.sp
+.if n .RS 4
+.nf
+.fam C
+backup_dir: ~/backup
+apps:
+  vim:
+    files: [~/.vimrc]
+  nvim:
+    files:
+      \- ~/.config/nvim/init.lua
+      \- ~/.config/nvim/lua
+.fam
+.fi
+.if n .RE
+.sp
+A configuration which use hooks to generate timestamp and make Git commit:
+.sp
+.if n .RS 4
+.nf
+.fam C
+backup_dir: ~/backup
+apps:
+  vim:
+    files: [~/.vimrc]
+  nvim:
+    files:
+      \- ~/.config/nvim/init.lua
+      \- ~/.config/nvim/lua
+post_backup:
+  \- date > "$BACKUP_DIR/timestamp"
+  \- |
+    set \-e
+    cd $BACKUP_DIR
+    git commit \-am "backup of $(date)"
+    git push
+.fam
+.fi
+.if n .RE
+.sp
+A configuration which ignore some files:
+.sp
+.if n .RS 4
+.nf
+.fam C
+backup_dir: ~/backup
+apps:
+  nvim:
+    files: [~/.config/nvim]
+    ignore: [lazy\-lock.json]
+ignore: [.git]
+.fam
+.fi
+.if n .RE
+.SH "RESOURCES"
+.sp
+Project website: \c
+.URL "https://github.com/jaxvanyang/dotbackup" "" ""
+.SH "SEE ALSO"
+.sp
+dotbackup(1)
+.SH "AUTHOR"
+.sp
+Jax Young

@@ -63,8 +63,8 @@ Setup is just the inversion of backup. `dotsetup` applies all the backup, and
 
 ## Documentation
 
-For more information, please read [dotbackup(1)](dotbackup.1.adoc) and
-[dotsetup(1)](dotsetup.1.adoc).
+For more information, please read [dotbackup(1)](docs/dotbackup.1) and
+[dotsetup(1)](dosc/dotsetup.1).
 
 ## Show Your Support
 
