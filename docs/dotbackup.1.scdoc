@@ -1,0 +1,83 @@
+DOTBACKUP(1) ["2.0.0" ["Dotfile Backup Manager"]]
+
+# NAME
+
+dotbackup - create backups of dotfiles
+
+# DESCRIPTION
+
+*dotbackup* is an easy-to-use and powerful tool for creating backups of
+dotfiles. To use it, you need to write a configuration, see *CONFIGURATION*.
+
+The process of backup is divided into stages:
+
+	```
+	pre_backup hooks
+	app1
+		app1 pre_backup hooks
+		copy app1 files
+		app1 post_backup hooks
+	app2
+	...
+	post_backup hooks
+	```
+
+To restore backups *dotbackup* creates, you need *dotsetup*, it's the opposite
+of *dotbackup*, see dotsetup(1).
+
+# SYNOPSIS
+
+*dotbackup* [-h|--help] [-f|--file _PATH_] [-c|--config _CONFIG_] [-l|--list] ++
+		[--clean] [-V|--version] [-v|--verbose] [--dump-config] [app ...]
+
+# OPTIONS
+
+*-h, --help*
+	Show help message and exit.
+
+*-f, --file=PATH*
+	Use the specified _PATH_ as the configuration path instead of the default.
+
+*-c, --config=CONFIG*
+	Use _CONFIG_DIR/CONFIG.yml_ as the configuration path instead of the
+	default.
+
+*-l, --list*
+	List all applications and exit.
+
+*--clean*
+	Delete old backup files before backup.
+
+*-V, --version*
+	Print version information and exit.
+
+*-v, --verbose*
+	Print more logs.
+
+*--dump-config*
+	Print parsed configuration.
+
+# POSITIONAL ARGUMENTS
+
+*app*
+	Application name to be backuped, if no *app* specified, all applications will
+	be backuped.
+
+# CONFIGURATION
+
+*dotbackup* and *dotsetup* share the same configuration. The default
+configuration path follows platform's convention, see
+https://crates.io/crates/dirs.
+
+[[ Linux
+:< _$HOME/.config/dotbackup/dotbackup.yml_
+|[ macOS
+:< _$HOME/Library/Application Support/dotbackup/dotbackup.yml_
+|[ Windows
+:< _$HOME\\AppData\\Roaming\\dotbackup\\dotbackup.yml_
+
+For the definition of configuration file, see dotbackup(5).
+
+# SEE ALSO
+
+dotsetup(1) dotbackup(5)

@@ -1,0 +1,116 @@
+DOTBACKUP(5) ["2.0.0" ["Configuration File Definition"]]
+
+# NAME
+
+dotbackup - configuration file definition for dotbackup(1)
+
+# DEFINITION
+
+Configuration files use YAML syntax, unknown entries are ignored.
+
+_backup_dir_
+	A string. The directory where backup files are stored.
+
+_clean_
+	A boolean. Whether to delete files in destination path before backup and
+	setup. The default is `false`. Option *--clean* override this configuration.
+
+_ignore_
+	A list of glob strings. The global ignored file patterns. Files that matches
+	one of these patterns will be ignored. But files that are directly specified
+	in _apps.<app>.files_ are not ignored.
+
+_apps.<app>.files_
+	A list of path strings. The files to be backed up of the application _<app>_,
+	_<app>_ can be any string. File paths *MUST* be under to the home directory
+	due to implementation. You can use _HOOKS_ to manipulate other files.
+
+_apps.<app>.ignore_
+	A list of glob strings. The application level ignored file patterns. Files
+	that matches one of these patterns will be ignored when back up and set up
+	_<app>_. But files that are directly specified in _apps.<app>.files_ are not
+	ignored.
+
+_apps.<app>.<pre_backup|post_backup|pre_setup|post_setup>_
+	A list of script strings. The application level custom hooks, _<app>_ can be
+	any string. See _HOOKS_ and _EXAMPLES_ for details.
+
+_<pre_backup|post_backup|pre_setup|post_setup>_
+	A list of script strings. The global custom hooks. See _HOOKS_ and _EXAMPLES_
+	for details.
+
+# HOOKS
+
+Technically, hooks are just shell scripts to be executed by `sh -s`. They can be
+divide into backup hooks and setup hooks. The execution order is indicated by
+their names. For example, the execution order of backup hooks is like:
+
+```
+pre_backup
+apps.app1
+	apps.app1.pre_backup
+	copy apps.app1.files
+	apps.app1.post_backup
+apps.app2
+...
+post_backup
+```
+
+And in hooks, you can use the environment variable _BACKUP_DIR_ which is set to
+_backup_dir_. So you can use hooks to do things beyond copying _files_, e.g.,
+file post-processing.
+
+# EXAMPLES
+
+First of all, dotbackup can back up itself:
+
+```
+backup_dir: ~/backup
+apps:
+  dotbackup:
+    files: [~/.config/dotbackup/dotbackup.yml]
+```
+
+A configuration back up Vim and Neovim:
+
+```
+backup_dir: ~/backup
+apps:
+  vim:
+    files: [~/.vimrc]
+  nvim:
+    files:
+      - ~/.config/nvim/init.lua
+      - ~/.config/nvim/lua
+```
+
+A configuration which use hooks to generate timestamp and make Git commit:
+
+```
+backup_dir: ~/backup
+apps:
+  vim:
+    files: [~/.vimrc]
+  nvim:
+    files:
+      - ~/.config/nvim/init.lua
+      - ~/.config/nvim/lua
+post_backup:
+  - date > "$BACKUP_DIR/timestamp"
+  - |
+    set -e
+    cd $BACKUP_DIR
+    git commit -am "backup of $(date)"
+    git push
+```
+
+A configuration which ignore some files:
+
+```
+backup_dir: ~/backup
+apps:
+  nvim:
+    files: [~/.config/nvim]
+    ignore: [lazy-lock.json]
+ignore: [.git]
+```

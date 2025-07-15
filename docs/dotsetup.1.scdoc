@@ -1,0 +1,81 @@
+DOTSETUP(1) ["2.0.0" ["Dotfile Backup Manager"]]
+
+# NAME
+
+dotsetup - restore backups of dotfiles
+
+# DESCRIPTION
+
+*dotsetup* is a tool to restore backups created by *dotbackup*, see
+dotbackup(1).
+
+Restore backup is also called setup in the context of *dotsetup*. The process of
+setup is divided into stages:
+
+	```
+	pre_setup hooks
+	app1
+		app1 pre_setup hooks
+		copy app1 files
+		app1 post_setup hooks
+	app2
+	...
+	post_setup hooks
+	```
+
+# SYNOPSIS
+
+*dotsetup* [-h|--help] [-f|--file _PATH_] [-c|--config _CONFIG_] [-l|--list] ++
+		[--clean] [-V|--version] [-v|--verbose] [--dump-config] [app ...]
+
+# OPTIONS
+
+*-h, --help*
+	Show help message and exit.
+
+*-f, --file=PATH*
+	Use the specified _PATH_ as the configuration path instead of the default.
+
+*-c, --config=CONFIG*
+	Use _CONFIG_DIR/CONFIG.yml_ as the configuration path instead of the
+	default.
+
+*-l, --list*
+	List all applications and exit.
+
+*--clean*
+	Delete old configuration files before restore.
+
+*-V, --version*
+	Print version information and exit.
+
+*-v, --verbose*
+	Print more logs.
+
+*--dump-config*
+	Print parsed configuration.
+
+# POSITIONAL ARGUMENTS
+
+*app*
+	Application name to be backuped, if no *app* specified, all applications will
+	be backuped.
+
+# CONFIGURATION
+
+*dotbackup* and *dotsetup* share the same configuration. The default
+configuration path follows platform's convention, see
+https://crates.io/crates/dirs.
+
+[[ Linux
+:< _$HOME/.config/dotsetup/dotsetup.yml_
+|[ macOS
+:< _$HOME/Library/Application Support/dotsetup/dotsetup.yml_
+|[ Windows
+:< _$HOME\\AppData\\Roaming\\dotsetup\\dotsetup.yml_
+
+For the definition of configuration file, see dotsetup(5).
+
+# SEE ALSO
+
+dotbackup(1) dotbackup(5)
