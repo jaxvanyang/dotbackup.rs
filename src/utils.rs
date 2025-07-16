@@ -41,7 +41,10 @@ pub fn copy_dir_all(
 				verbose,
 			)?;
 		} else {
-			fs::copy(entry.path(), to.as_ref().join(entry.file_name()))?;
+			let from = entry.path();
+			let to = to.as_ref().join(entry.file_name());
+			log!(verbose, "LOG: copy {from:?} -> {to:?}");
+			fs::copy(from, to)?;
 		}
 	}
 	Ok(())
