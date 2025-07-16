@@ -1,9 +1,8 @@
 use super::Config;
 use crate::{
-	Cli, arg_error, config_error, copy_dir_all, error::Result, info, log, run_hooks, sys_error,
-	warn,
+	Cli, arg_error, config_error, copy_dir_all, error::Result, expanduser, info, log, run_hooks,
+	sys_error, warn,
 };
-use expanduser::expanduser;
 use glob::Pattern;
 use saphyr::Yaml;
 use std::{

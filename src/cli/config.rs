@@ -5,9 +5,8 @@ pub use app::*;
 use crate::{
 	arg_error, config_error,
 	error::{Error, Result},
-	run_hooks, sys_error,
+	expanduser, run_hooks, sys_error,
 };
-use expanduser::expanduser;
 use glob::Pattern;
 use saphyr::{LoadableYamlNode, Yaml};
 use std::{
