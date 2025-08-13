@@ -74,6 +74,9 @@ https://crates.io/crates/dirs.
 |[ Windows
 :< _$HOME\\AppData\\Roaming\\dotsetup\\dotsetup.yml_
 
+If there is a _dotbackup.yml_ under current working directory, it will be used
+instead.
+
 For the definition of configuration file, see dotsetup(5).
 
 # SEE ALSO
