@@ -154,7 +154,7 @@ impl Cli {
 			Name::Dotbackup => "Delete old backup files before backup",
 			Name::Dotsetup => "Delete old configuration files before setup",
 		};
-		let config_path = Self::config_dir()?.join("CONFIG.yml");
+		let config_path = Self::config_dir()?.join("<CONFIG>.yml");
 
 		print!(
 			"\
@@ -164,7 +164,7 @@ Usage: {name} [OPTIONS] [APPS]
 
 Options:
   -h, --help                     Print help
-  -f, --file <PATH>              Use configuration file at PATH
+  -f, --file <PATH>              Use configuration file at <PATH>
   -c, --config <CONFIG>          Use configuration file at {config_path}
   -l, --list                     List all applications and exit
       --clean                    {clean_help}
