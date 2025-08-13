@@ -18,11 +18,11 @@ doc:
 	scdoc < docs/dotbackup.5.scdoc > docs/dotbackup.5
 
 install:
-	install -Dm755 -t {{prefix}}/bin target/release/dotbackup
-	install -Dm755 -t {{prefix}}/bin target/release/dotsetup
-	install -Dm644 -t {{prefix}}/share/man/man1 docs/dotbackup.1
-	install -Dm644 -t {{prefix}}/share/man/man1 docs/dotsetup.1
-	install -Dm644 -t {{prefix}}/share/man/man5 docs/dotbackup.5
+	install -Dm755 target/release/dotbackup {{prefix}}/bin/dotbackup
+	install -Dm755 target/release/dotsetup {{prefix}}/bin/dotsetup
+	install -Dm644 docs/dotbackup.1 {{prefix}}/share/man/man1/dotbackup.1
+	install -Dm644 docs/dotsetup.1 {{prefix}}/share/man/man1/dotsetup.1
+	install -Dm644 docs/dotbackup.5 {{prefix}}/share/man/man5/dotbackup.5
 
 uninstall:
 	rm -f {{prefix}}/bin/dotbackup
