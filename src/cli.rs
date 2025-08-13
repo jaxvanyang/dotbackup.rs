@@ -78,7 +78,13 @@ impl Cli {
 	}
 
 	pub fn default_config_path() -> Result<PathBuf> {
-		Ok(Self::config_dir()?.join("dotbackup.yml"))
+		let path = PathBuf::from("dotbackup.yml");
+
+		Ok(if path.is_file() {
+			path
+		} else {
+			Self::config_dir()?.join(path)
+		})
 	}
 
 	/// Parse command-line arguments and also parse config.
