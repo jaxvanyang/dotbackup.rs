@@ -1,6 +1,6 @@
 # dotbackup.rs
 
-> Rust implementation & continuation of [dotbackup](https://github.com/jaxvanyang/dotbackup).
+> Rust implementation & successor of [dotbackup](https://github.com/jaxvanyang/dotbackup).
 
 [![AUR version](https://img.shields.io/aur/version/dotbackup)](https://aur.archlinux.org/packages/dotbackup)
 [![crate version](https://img.shields.io/crates/v/dotbackup)](https://crates.io/crates/dotbackup)
