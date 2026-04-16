@@ -16,18 +16,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends scdoc just
       - uses: actions/checkout@v6
-      - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --verbose
+      - name: Build man pages
+        run: just doc
       - name: Create the release tarball
         run: |
-          cp target/release/{dotbackup,dotsetup} .
-          tar cavf dotbackup-linux-amd64.tar.xz LICENSE README.md dotbackup dotsetup
+          cp target/release/{dotbackup,dotsetup} docs/*.{1,5} .
+          tar cavf dotbackup-linux-x86_64.tar.xz LICENSE README.md dotbackup dotsetup *.1 *.5
       - uses: actions/upload-artifact@v7
         with:
-          path: dotbackup-linux-amd64.tar.xz
+          path: dotbackup-linux-x86_64.tar.xz
           archive: false
       - name: Run tests
         run: cargo test --verbose
