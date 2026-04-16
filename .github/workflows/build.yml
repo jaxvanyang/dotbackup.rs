@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  release:
+    types: [created]
   workflow_dispatch:
 
 env:
@@ -14,14 +16,53 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: extractions/setup-just@v2
+      - uses: actions/checkout@v6
+      - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build --verbose
-      # - name: Run tests
-      #   run: cargo test --verbose
+        run: cargo build --release --verbose
+      - name: Create the release tarball
+        run: |
+          cp target/release/{dotbackup,dotsetup} .
+          tar cavf dotbackup-linux-amd64.tar.xz LICENSE README.md dotbackup dotsetup
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dotbackup-linux-amd64.tar.xz
+          archive: false
+      - name: Run tests
+        run: cargo test --verbose
       - name: Lint code
         run: just check
       - name: Check code style
         run: cargo fmt --check
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref_type == 'tag'
+    environment: release  # Optional: for enhanced security
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dotbackup-linux-amd64.tar.xz
+      - name: Publish to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dotbackup-linux-amd64.tar.xz
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref_type == 'tag'
+    environment: release  # Optional: for enhanced security
+    permissions:
+      id-token: write     # Required for OIDC token exchange
+    steps:
+    - uses: actions/checkout@v6
+    - uses: rust-lang/crates-io-auth-action@v1
+      id: auth
+    - run: cargo publish
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
