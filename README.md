@@ -1,4 +1,4 @@
-# dotbackup.rs
+# dotbackup
 
 > Rust implementation & successor of [dotbackup](https://github.com/jaxvanyang/dotbackup).
 
