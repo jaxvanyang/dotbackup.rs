@@ -1,17 +1,17 @@
 use dirs::home_dir;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::{error::Result, sys_error};
+/// # Panics
+///
+/// Will panic if home directory is unknown
+#[must_use]
+pub fn expanduser(path: &Path) -> PathBuf {
+	let mut ret = path.to_path_buf();
 
-pub fn expanduser<S: AsRef<str>>(path: S) -> Result<PathBuf> {
-	let home = home_dir().ok_or(sys_error!("unknown system, cannot decide home directory"))?;
-	if path.as_ref() == "~" {
-		return Ok(home);
+	if ret.starts_with("~") {
+		let home = home_dir().expect("unknown system, cannot decide home directory");
+		ret = home.join(ret.strip_prefix("~").unwrap());
 	}
 
-	Ok(if path.as_ref().starts_with("~/") {
-		home.join(PathBuf::from(path.as_ref().replace("~/", "")))
-	} else {
-		PathBuf::from(path.as_ref())
-	})
+	ret
 }

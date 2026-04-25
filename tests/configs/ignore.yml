@@ -1,0 +1,14 @@
+backup_dir: ~/backup
+apps:
+  app:
+    files:
+      # contains ignore/global_ignore and ignore/app_ignore which should be
+      # ignored
+      - ~/.config/app
+      # files below should not be ignored
+      - ~/.config/app/global_ignore
+      - ~/.config/app/app_ignore
+    ignore:
+      - app_ignore
+ignore:
+  - global_ignore

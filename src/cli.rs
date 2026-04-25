@@ -89,7 +89,7 @@ impl Cli {
 
 	/// Parse command-line arguments and also parse config.
 	pub fn parse_args(mut self) -> Result<Self> {
-		let mut config_parsed = false;
+		let mut is_config_provided = false;
 		let mut args = env::args();
 		args.next();
 
@@ -103,7 +103,7 @@ impl Cli {
 						.next()
 						.ok_or(arg_error!("expected a file path after option {arg}"))?;
 					self.config.apply_file(&PathBuf::from(file_path))?;
-					config_parsed = true;
+					is_config_provided = true;
 				}
 				"-c" | "--config" => {
 					let config_name = args.next().ok_or(arg_error!(
@@ -111,7 +111,7 @@ impl Cli {
 					))?;
 					self.config
 						.apply_file(&Self::config_dir()?.join(format!("{config_name}.yml")))?;
-					config_parsed = true;
+					is_config_provided = true;
 				}
 				"-l" | "--list" => {
 					self.action = Action::List;
@@ -129,7 +129,7 @@ impl Cli {
 			}
 		}
 
-		if !config_parsed {
+		if !is_config_provided {
 			self.config.apply_file(&Self::default_config_path()?)?;
 		}
 

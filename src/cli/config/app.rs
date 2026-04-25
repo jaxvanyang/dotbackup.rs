@@ -1,81 +1,61 @@
 use super::Config;
-use crate::{
-	Cli, arg_error, config_error, copy_dir_all, error::Result, expanduser, info, log, run_hooks,
-	sys_error, warn,
-};
+use crate::{Cli, arg_error, config_error, copy_dir_all, error::Result, log, sys_error, warn};
 use glob::Pattern;
-use saphyr::Yaml;
+use serde::{Deserialize, Serialize};
 use std::{
 	fmt::Display,
 	fs::{self, create_dir_all, remove_dir_all, remove_file},
 	path::PathBuf,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct App {
-	pub name: String,
+	// pub name: String,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub files: Vec<PathBuf>,
-	pub ignore: Vec<Pattern>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
+	pub ignore: Vec<String>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_backup: Vec<String>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_backup: Vec<String>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_setup: Vec<String>,
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_setup: Vec<String>,
 }
 
 impl App {
-	#[must_use]
-	pub fn new(name: &str) -> Self {
-		Self {
-			name: name.to_string(),
-			..Default::default()
+	fn merge_patterns(local: &Vec<String>, global: &Vec<String>) -> Result<Vec<Pattern>> {
+		let mut ret = Vec::new();
+		for s in local {
+			ret.push(Pattern::new(s).map_err(|e| arg_error!("invalid glob pattern: {e:?}"))?);
 		}
-	}
-
-	pub fn load_from_config(name: &str, config: &Yaml) -> Result<Self> {
-		if let Yaml::Mapping(config) = config {
-			let mut app = Self::new(name);
-
-			for file in Config::collect_array(config, "files")? {
-				app.files
-					.push(expanduser(file).map_err(|e| arg_error!("expanduser error: {e}"))?);
-			}
-
-			for glob in Config::collect_array(config, "ignore")? {
-				app.ignore
-					.push(Pattern::new(&glob).map_err(|e| arg_error!("invalid glob: {e}"))?);
-			}
-
-			app.pre_backup = Config::collect_array(config, "pre_backup")?;
-			app.post_backup = Config::collect_array(config, "post_backup")?;
-			app.pre_setup = Config::collect_array(config, "pre_setup")?;
-			app.post_setup = Config::collect_array(config, "post_setup")?;
-
-			Ok(app)
-		} else {
-			Err(arg_error!("expected app {name} to a mapping"))
+		for s in global {
+			ret.push(Pattern::new(s).map_err(|e| arg_error!("invalid glob pattern: {e:?}"))?);
 		}
+
+		Ok(ret)
 	}
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn backup(&self, config: &Config) -> Result<()> {
 		let config_root = Cli::config_root()?;
-		let backup_dir = config.get_backup_dir()?;
+		let backup_dir = &config.backup_dir;
+		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		run_hooks(
-			&self.pre_backup,
-			backup_dir,
-			&format!("pre-backup hooks for {}", self.name),
-		)?;
-
-		info!("Starting backup for {}...", self.name);
-		let mut ignore = self.ignore.clone();
-		ignore.extend(config.ignore.clone());
 		for src in &self.files {
 			if !src.starts_with(&config_root) {
 				return Err(config_error!(
-					"expected files under the configuration root ({}): {}",
+					"the file ({}) is expected to be under the configuration root ({})",
+					src.display(),
 					config_root.display(),
-					src.display()
 				));
 			}
 
@@ -85,12 +65,11 @@ impl App {
 			}
 
 			let dest = backup_dir.join(src.strip_prefix(&config_root).unwrap());
-			if let Some(dest_dir) = dest.parent() {
-				if !dest_dir.exists() {
-					log!(config.verbose, "LOG: mkdir {dest_dir:?}");
-					create_dir_all(dest_dir)
-						.map_err(|e| sys_error!("create directory error: {e}"))?;
-				}
+			if let Some(dest_dir) = dest.parent()
+				&& !dest_dir.exists()
+			{
+				log!(config.verbose, "LOG: mkdir {dest_dir:?}");
+				create_dir_all(dest_dir).map_err(|e| sys_error!("create directory error: {e}"))?;
 			}
 			if config.clean && dest.exists() {
 				log!(config.verbose, "LOG: clean: remove {dest:?}");
@@ -110,27 +89,15 @@ impl App {
 			}
 		}
 
-		run_hooks(
-			&self.post_backup,
-			backup_dir,
-			&format!("post-backup hooks for {}", self.name),
-		)
+		Ok(())
 	}
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn setup(&self, config: &Config) -> Result<()> {
 		let config_root = Cli::config_root()?;
-		let backup_dir = config.get_backup_dir()?;
+		let backup_dir = &config.backup_dir;
+		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		run_hooks(
-			&self.pre_setup,
-			backup_dir,
-			&format!("pre-setup hooks for {}", self.name),
-		)?;
-
-		info!("Starting setup for {}...", self.name);
-		let mut ignore = self.ignore.clone();
-		ignore.extend(config.ignore.clone());
 		for dest in &self.files {
 			if !dest.starts_with(&config_root) {
 				return Err(config_error!(
@@ -145,12 +112,11 @@ impl App {
 				continue;
 			}
 
-			if let Some(dest_dir) = dest.parent() {
-				if !dest_dir.exists() {
-					log!(config.verbose, "LOG: mkdir: {dest_dir:?}");
-					create_dir_all(dest_dir)
-						.map_err(|e| sys_error!("create directory error: {e}"))?;
-				}
+			if let Some(dest_dir) = dest.parent()
+				&& !dest_dir.exists()
+			{
+				log!(config.verbose, "LOG: mkdir: {dest_dir:?}");
+				create_dir_all(dest_dir).map_err(|e| sys_error!("create directory error: {e}"))?;
 			}
 			if config.clean && dest.exists() {
 				log!(config.verbose, "LOG: clean: remove {dest:?}");
@@ -170,67 +136,16 @@ impl App {
 			}
 		}
 
-		run_hooks(
-			&self.post_setup,
-			backup_dir,
-			&format!("post-setup hooks for {}", self.name),
-		)
+		Ok(())
 	}
 }
 
 impl Display for App {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		writeln!(f, "  {}:", self.name)?;
-		write!(
+		writeln!(
 			f,
 			"{}",
-			Config::format_array(
-				"files",
-				&self
-					.files
-					.iter()
-					.map(|p| p
-						.to_str()
-						.expect("file path should be UTF-8 encoded")
-						.to_string())
-					.collect(),
-				2
-			)
-		)?;
-		write!(
-			f,
-			"{}",
-			Config::format_array(
-				"ignore",
-				&self
-					.ignore
-					.iter()
-					.map(std::string::ToString::to_string)
-					.collect(),
-				2
-			)
-		)?;
-
-		// TODO: pretty print multi-line string
-		write!(
-			f,
-			"{}",
-			Config::format_array("pre_backup", &self.pre_backup, 2)
-		)?;
-		write!(
-			f,
-			"{}",
-			Config::format_array("post_backup", &self.post_backup, 2)
-		)?;
-		write!(
-			f,
-			"{}",
-			Config::format_array("pre_setup", &self.pre_setup, 2)
-		)?;
-		write!(
-			f,
-			"{}",
-			Config::format_array("post_setup", &self.post_setup, 2)
+			yaml_serde::to_string(self).map_err(|_| std::fmt::Error)?
 		)
 	}
 }
