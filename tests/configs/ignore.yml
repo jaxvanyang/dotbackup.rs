@@ -1,5 +1,6 @@
 dotfile_root: test
 backup_dir: test/backup
+verbose: true
 apps:
   app:
     files:

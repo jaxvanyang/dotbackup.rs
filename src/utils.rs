@@ -25,12 +25,18 @@ pub fn copy_dir_all(
 	for entry in from.as_ref().read_dir()? {
 		let entry = entry?;
 		let path = entry.path();
+		let mut is_ignored = false;
 
 		for pattern in ignore {
 			if pattern.matches_path(&PathBuf::from(path.file_name().unwrap())) {
 				log!(verbose, "LOG: ignore {}", path.display());
-				return Ok(());
+				is_ignored = true;
+				break;
 			}
+		}
+
+		if is_ignored {
+			continue;
 		}
 
 		if entry.file_type()?.is_dir() {

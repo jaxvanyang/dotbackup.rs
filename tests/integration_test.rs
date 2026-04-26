@@ -2,9 +2,8 @@ mod helper;
 
 use dotbackup::cli::Config;
 use helper::*;
-use std::{fs, path::Path};
 use serial_test::serial;
-
+use std::{fs, path::Path};
 
 #[test]
 fn test_empty() {
@@ -34,19 +33,43 @@ fn test_basic() {
 	write_file("test/.config/app_b/b2.txt", "b2");
 	write_file("test/.config/app_b/b3.txt", "b3");
 	config.backup().unwrap();
-	assert_eq!("a1", fs::read_to_string("test/backup/.config/app_a/a1.txt").unwrap());
-	assert_eq!("a2", fs::read_to_string("test/backup/.config/app_a/a2.txt").unwrap());
-	assert_eq!("b1", fs::read_to_string("test/backup/.config/app_b/b1.txt").unwrap());
-	assert_eq!("b2", fs::read_to_string("test/backup/.config/app_b/b2.txt").unwrap());
+	assert_eq!(
+		"a1",
+		fs::read_to_string("test/backup/.config/app_a/a1.txt").unwrap()
+	);
+	assert_eq!(
+		"a2",
+		fs::read_to_string("test/backup/.config/app_a/a2.txt").unwrap()
+	);
+	assert_eq!(
+		"b1",
+		fs::read_to_string("test/backup/.config/app_b/b1.txt").unwrap()
+	);
+	assert_eq!(
+		"b2",
+		fs::read_to_string("test/backup/.config/app_b/b2.txt").unwrap()
+	);
 	assert!(!Path::new("test/backup/.config/app_b/b3.txt").is_file());
 
 	fs::remove_dir_all("test/.config").unwrap();
 	write_file("test/backup/.config/app_b/b3.txt", "b3");
 	config.setup().unwrap();
-	assert_eq!("a1", fs::read_to_string("test/.config/app_a/a1.txt").unwrap());
-	assert_eq!("a2", fs::read_to_string("test/.config/app_a/a2.txt").unwrap());
-	assert_eq!("b1", fs::read_to_string("test/.config/app_b/b1.txt").unwrap());
-	assert_eq!("b2", fs::read_to_string("test/.config/app_b/b2.txt").unwrap());
+	assert_eq!(
+		"a1",
+		fs::read_to_string("test/.config/app_a/a1.txt").unwrap()
+	);
+	assert_eq!(
+		"a2",
+		fs::read_to_string("test/.config/app_a/a2.txt").unwrap()
+	);
+	assert_eq!(
+		"b1",
+		fs::read_to_string("test/.config/app_b/b1.txt").unwrap()
+	);
+	assert_eq!(
+		"b2",
+		fs::read_to_string("test/.config/app_b/b2.txt").unwrap()
+	);
 	assert!(!Path::new("test/.config/app_b/b3.txt").is_file());
 }
 
@@ -74,16 +97,31 @@ fn test_ignore() {
 	assert!(!Path::new("test/backup/.config/app/ignore/global_ignore").is_file());
 	assert!(!Path::new("test/backup/.config/app/ignore/app_ignore").is_file());
 	assert!(Path::new("test/backup/.config/app/ignore").is_dir());
-	assert_eq!(fs::read_to_string("test/backup/.config/app/global_ignore").unwrap(), "global_ignore");
-	assert_eq!(fs::read_to_string("test/backup/.config/app/app_ignore").unwrap(), "app_ignore");
+	assert_eq!(
+		fs::read_to_string("test/backup/.config/app/global_ignore").unwrap(),
+		"global_ignore"
+	);
+	assert_eq!(
+		fs::read_to_string("test/backup/.config/app/app_ignore").unwrap(),
+		"app_ignore"
+	);
 
 	fs::remove_dir_all("test/.config").unwrap();
-	write_file("test/backup/.config/app/ignore/global_ignore", "global_ignore");
+	write_file(
+		"test/backup/.config/app/ignore/global_ignore",
+		"global_ignore",
+	);
 	write_file("test/backup/.config/app/ignore/app_ignore", "app_ignore");
 	config.setup().unwrap();
 	assert!(!Path::new("test/.config/app/ignore/global_ignore").is_file());
 	assert!(!Path::new("test/.config/app/ignore/app_ignore").is_file());
 	assert!(Path::new("test/.config/app/ignore").is_dir());
-	assert_eq!(fs::read_to_string("test/.config/app/global_ignore").unwrap(), "global_ignore");
-	assert_eq!(fs::read_to_string("test/.config/app/app_ignore").unwrap(), "app_ignore");
+	assert_eq!(
+		fs::read_to_string("test/.config/app/global_ignore").unwrap(),
+		"global_ignore"
+	);
+	assert_eq!(
+		fs::read_to_string("test/.config/app/app_ignore").unwrap(),
+		"app_ignore"
+	);
 }

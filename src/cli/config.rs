@@ -93,7 +93,9 @@ impl Config {
 	/// Will panic if home directory is unknown
 	#[must_use]
 	pub fn get_dotfile_root(&self) -> PathBuf {
-		self.dotfile_root.clone().unwrap_or(home_dir().expect("home directory is unknown"))
+		self.dotfile_root
+			.clone()
+			.unwrap_or(home_dir().expect("home directory is unknown"))
 	}
 
 	pub fn list_apps(&self) {

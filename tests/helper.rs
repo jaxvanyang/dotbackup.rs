@@ -14,7 +14,7 @@ pub fn cleanup() {
 /// Create and write text to file
 pub fn write_file(path: &str, text: &str) {
 	let path = Path::new(path);
-	
+
 	if let Some(parent) = path.parent() {
 		fs::create_dir_all(parent).unwrap();
 	}
