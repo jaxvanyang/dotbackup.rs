@@ -45,16 +45,19 @@ jobs:
       - name: Create the release tarball
         if: matrix.os != 'windows-latest'
         run: |
+          version=$(cargo pkgid | cut -d @ -f 2)
           cp target/release/{dotbackup,dotsetup} docs/*.{1,5} .
-          tar cavf dotbackup-${{ matrix.platform }}.tar.xz LICENSE README.md dotbackup dotsetup ./*.1 ./*.5
+          tar cavf "dotbackup-$version-${{ matrix.platform }}.tar.xz" LICENSE README.md dotbackup dotsetup ./*.1 ./*.5
       - name: Create the release zip
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
+          $version = (cargo pkgid).Split('@')[-1]
           Copy-Item -Force -Path target/release/dotbackup.exe, target/release/dotsetup.exe -Destination .
-          Compress-Archive -Path LICENSE, README.md, dotbackup.exe, dotsetup.exe -Destination dotbackup-${{ matrix.platform }}.zip
+          Compress-Archive -Path LICENSE, README.md, dotbackup.exe, dotsetup.exe -Destination "dotbackup-$version-${{ matrix.platform }}.zip"
       - uses: actions/upload-artifact@v7
         with:
-          path: dotbackup-${{ matrix.platform }}.*
+          path: dotbackup-*
           archive: false
       - name: Run tests
         run: cargo test --verbose
