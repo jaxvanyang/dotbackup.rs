@@ -1,0 +1,3 @@
+backup_dir: test
+unknown_option: test
+unknown_list: [a, b]

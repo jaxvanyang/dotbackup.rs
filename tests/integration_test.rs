@@ -125,3 +125,10 @@ fn test_ignore() {
 		"app_ignore"
 	);
 }
+
+#[test]
+fn test_unknown_option() {
+	let config_a = Config::try_from(include_str!("configs/unknown_option.yml")).unwrap();
+	let config_b = Config::try_from("backup_dir: test").unwrap();
+	assert_eq!(config_a, config_b);
+}
