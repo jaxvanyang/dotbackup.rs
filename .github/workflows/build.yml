@@ -14,30 +14,52 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Install dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends scdoc just
+          sudo apt-get install -y --no-install-recommends scdoc
+      - name: Install dependencies
+        if: matrix.os == 'macos-latest'
+        run: brew install scdoc
+      - uses: extractions/setup-just@v4
       - uses: actions/checkout@v6
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --verbose
       - name: Build man pages
+        if: matrix.os != 'windows-latest'
         run: just doc
       - name: Create the release tarball
+        if: matrix.os != 'windows-latest'
         run: |
           cp target/release/{dotbackup,dotsetup} docs/*.{1,5} .
-          tar cavf dotbackup-linux-x86_64.tar.xz LICENSE README.md dotbackup dotsetup *.1 *.5
+          tar cavf dotbackup-${{ matrix.platform }}.tar.xz LICENSE README.md dotbackup dotsetup ./*.1 ./*.5
+      - name: Create the release zip
+        if: matrix.os == 'windows-latest'
+        run: |
+          Copy-Item -Force -Path target/release/dotbackup.exe, target/release/dotsetup.exe -Destination .
+          Compress-Archive -Path LICENSE, README.md, dotbackup.exe, dotsetup.exe -Destination dotbackup-${{ matrix.platform }}.zip
       - uses: actions/upload-artifact@v7
         with:
-          path: dotbackup-linux-x86_64.tar.xz
+          path: dotbackup-${{ matrix.platform }}.*
           archive: false
       - name: Run tests
         run: cargo test --verbose
       - name: Lint code
-        run: just check
+        run: cargo clippy
       - name: Check code style
         run: cargo fmt --check
 
@@ -50,12 +72,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/download-artifact@v8
-        with:
-          name: dotbackup-linux-amd64.tar.xz
       - name: Publish to GitHub
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          files: dotbackup-linux-amd64.tar.xz
+          files: dotbackup-*
 
   publish:
     runs-on: ubuntu-latest
