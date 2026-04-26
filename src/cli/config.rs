@@ -16,6 +16,10 @@ use std::{
 	path::{Path, PathBuf},
 };
 
+fn is_false(value: &bool) -> bool {
+	!value
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
 	// NOTE: CLI args may change these, be sure to consider them in `apply_file`
@@ -24,8 +28,10 @@ pub struct Config {
 	#[serde(skip)]
 	pub selected_apps: Vec<String>,
 	#[serde(default)]
+	#[serde(skip_serializing_if = "is_false")]
 	pub clean: bool,
 	#[serde(default)]
+	#[serde(skip_serializing_if = "is_false")]
 	pub verbose: bool,
 
 	/// dotfile root directory, default is the home directory
