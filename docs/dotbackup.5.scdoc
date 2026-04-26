@@ -8,8 +8,12 @@ dotbackup - configuration file definition for dotbackup(1)
 
 Configuration files use YAML syntax, unknown entries are ignored.
 
+_dotfile_root_
+	A string. The root directory of dotfiles. dotbackup use this to compute the
+	relative paths to store dotfile backups. The default is the home directory.
+
 _backup_dir_
-	A string. The directory where backup files are stored.
+	Required. A string. The directory where backup files are stored.
 
 _clean_
 	A boolean. Whether to delete files in destination path before backup and

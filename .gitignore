@@ -1,5 +1,7 @@
 *.1
 *.5
 /target
-/test
 Cargo.lock
+
+# this directory if for testing, don't put any file in it
+/test

@@ -1,13 +1,14 @@
-backup_dir: ~/backup
+dotfile_root: test
+backup_dir: test/backup
 apps:
   app:
     files:
       # contains ignore/global_ignore and ignore/app_ignore which should be
       # ignored
-      - ~/.config/app
+      - test/.config/app
       # files below should not be ignored
-      - ~/.config/app/global_ignore
-      - ~/.config/app/app_ignore
+      - test/.config/app/global_ignore
+      - test/.config/app/app_ignore
     ignore:
       - app_ignore
 ignore:

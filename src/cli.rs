@@ -65,10 +65,6 @@ impl Cli {
 		self
 	}
 
-	pub fn config_root() -> Result<PathBuf> {
-		dirs::home_dir().ok_or(sys_error!("unknown system, cannot decide home directory"))
-	}
-
 	pub fn config_dir() -> Result<PathBuf> {
 		Ok(dirs::config_dir()
 			.ok_or(sys_error!(

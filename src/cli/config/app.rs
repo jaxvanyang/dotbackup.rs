@@ -1,5 +1,5 @@
 use super::Config;
-use crate::{Cli, arg_error, config_error, copy_dir_all, error::Result, log, sys_error, warn};
+use crate::{arg_error, config_error, copy_dir_all, error::Result, log, sys_error, warn};
 use glob::Pattern;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -46,16 +46,16 @@ impl App {
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn backup(&self, config: &Config) -> Result<()> {
-		let config_root = Cli::config_root()?;
+		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = &config.backup_dir;
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for src in &self.files {
-			if !src.starts_with(&config_root) {
+			if !src.starts_with(&dotfile_root) {
 				return Err(config_error!(
-					"the file ({}) is expected to be under the configuration root ({})",
+					"the file ({}) is expected to be under the dotfile root ({})",
 					src.display(),
-					config_root.display(),
+					dotfile_root.display(),
 				));
 			}
 
@@ -64,7 +64,7 @@ impl App {
 				continue;
 			}
 
-			let dest = backup_dir.join(src.strip_prefix(&config_root).unwrap());
+			let dest = backup_dir.join(src.strip_prefix(&dotfile_root).unwrap());
 			if let Some(dest_dir) = dest.parent()
 				&& !dest_dir.exists()
 			{
@@ -94,19 +94,20 @@ impl App {
 
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn setup(&self, config: &Config) -> Result<()> {
-		let config_root = Cli::config_root()?;
+		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = &config.backup_dir;
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for dest in &self.files {
-			if !dest.starts_with(&config_root) {
+			if !dest.starts_with(&dotfile_root) {
 				return Err(config_error!(
-					"configuration file not under configuration root: {}",
-					dest.display()
+					"the file ({}) is expected to be under the dotfile root ({})",
+					dest.display(),
+					dotfile_root.display(),
 				));
 			}
 
-			let src = backup_dir.join(dest.strip_prefix(&config_root).unwrap());
+			let src = backup_dir.join(dest.strip_prefix(&dotfile_root).unwrap());
 			if !src.exists() {
 				warn!("LOG: skip: file not found: {src:?}");
 				continue;

@@ -1,6 +1,7 @@
 mod app;
 
 pub use app::*;
+use dirs::home_dir;
 
 use crate::{
 	arg_error, config_error,
@@ -27,6 +28,10 @@ pub struct Config {
 	#[serde(default)]
 	pub verbose: bool,
 
+	/// dotfile root directory, default is the home directory
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub dotfile_root: Option<PathBuf>,
 	pub backup_dir: PathBuf,
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
@@ -81,6 +86,14 @@ impl Config {
 		} else {
 			self.selected_apps.clone()
 		}
+	}
+
+	/// # Panics
+	///
+	/// Will panic if home directory is unknown
+	#[must_use]
+	pub fn get_dotfile_root(&self) -> PathBuf {
+		self.dotfile_root.clone().unwrap_or(home_dir().expect("home directory is unknown"))
 	}
 
 	pub fn list_apps(&self) {

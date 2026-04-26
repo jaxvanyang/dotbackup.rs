@@ -1,8 +1,9 @@
-backup_dir: ~/backup
+dotfile_root: test
+backup_dir: test/backup
 apps:
   app_a:
     files:
-      - ~/.config/app_a
+      - test/.config/app_a
     pre_backup:
       - echo app_a pre_backup $BACKUP_DIR
     post_backup:
@@ -13,8 +14,8 @@ apps:
       - echo app_a post_setup $BACKUP_DIR
   app_b:
     files:
-      - ~/.config/app_b/b1.txt
-      - ~/.config/app_b/b2.txt
+      - test/.config/app_b/b1.txt
+      - test/.config/app_b/b2.txt
     pre_backup:
       - echo app_b pre_backup $BACKUP_DIR
     post_backup:

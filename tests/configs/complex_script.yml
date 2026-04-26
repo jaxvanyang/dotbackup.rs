@@ -1,4 +1,4 @@
-backup_dir: ~/backup
+backup_dir: test/backup
 pre_backup:
   - |
     hello() {
