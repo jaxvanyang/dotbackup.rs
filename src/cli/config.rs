@@ -16,6 +16,7 @@ use std::{
 	path::{Path, PathBuf},
 };
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(value: &bool) -> bool {
 	!value
 }

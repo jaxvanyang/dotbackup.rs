@@ -25,9 +25,28 @@ _ignore_
 	in _apps.<app>.files_ are not ignored.
 
 _apps.<app>.files_
-	A list of path strings. The files to be backed up of the application _<app>_,
-	_<app>_ can be any string. File paths *MUST* be under to the home directory
-	due to implementation. You can use _HOOKS_ to manipulate other files.
+	A list of path strings. The files to be backed up of the application _<app>_
+	for all systems, _<app>_ can be any string. File paths *MUST* be under
+	_dotfile_root_ due to implementation. You can use _HOOKS_ to manipulate other
+	files.
+
+_apps.<app>.files_linux_
+	A list of path strings. The files to be backed up of the application _<app>_
+	only for Linux systems, _<app>_ can be any string. File paths *MUST* be under
+	_dotfile_root_ due to implementation. You can use _HOOKS_ to manipulate other
+	files.
+
+_apps.<app>.files_macos_
+	A list of path strings. The files to be backed up of the application _<app>_
+	only for macOS, _<app>_ can be any string. File paths *MUST* be under
+	_dotfile_root_ due to implementation. You can use _HOOKS_ to manipulate other
+	files.
+
+_apps.<app>.files_windows_
+	A list of path strings. The files to be backed up of the application _<app>_
+	only for Windows, _<app>_ can be any string. File paths *MUST* be under
+	_dotfile_root_ due to implementation. You can use _HOOKS_ to manipulate other
+	files.
 
 _apps.<app>.ignore_
 	A list of glob strings. The application level ignored file patterns. Files

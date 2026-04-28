@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-/// Make an emptry directory "test"
+/// Make an empty directory "test"
 ///
 /// Note: only cleanup before test so that we can inspect failed tests
 pub fn cleanup() {

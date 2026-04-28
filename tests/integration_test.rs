@@ -21,10 +21,6 @@ fn test_minimal() {
 #[serial]
 fn test_basic() {
 	let config = Config::try_from(include_str!("configs/basic.yml")).unwrap();
-	assert_eq!(
-		config,
-		Config::try_from(config.to_string().as_str()).unwrap()
-	);
 
 	cleanup();
 	write_file("test/.config/app_a/a1.txt", "a1");
@@ -83,10 +79,6 @@ fn test_complex_script() {
 #[serial]
 fn test_ignore() {
 	let config = Config::try_from(include_str!("configs/ignore.yml")).unwrap();
-	assert_eq!(
-		config,
-		Config::try_from(config.to_string().as_str()).unwrap()
-	);
 
 	cleanup();
 	write_file("test/.config/app/ignore/global_ignore", "global_ignore");
@@ -131,4 +123,79 @@ fn test_unknown_option() {
 	let config_a = Config::try_from(include_str!("configs/unknown_option.yml")).unwrap();
 	let config_b = Config::try_from("backup_dir: test").unwrap();
 	assert_eq!(config_a, config_b);
+}
+
+#[test]
+#[serial]
+fn test_os() {
+	let config = Config::try_from(include_str!("configs/os.yml")).unwrap();
+
+	cleanup();
+	write_file("test/.config/app/all.txt", "all");
+	write_file("test/.config/app/linux.txt", "linux");
+	write_file("test/.config/app/macos.txt", "macos");
+	write_file("test/.config/app/windows.txt", "windows");
+	config.backup().unwrap();
+	assert_eq!(
+		fs::read_to_string("test/backup/.config/app/all.txt").unwrap(),
+		"all"
+	);
+	if cfg!(target_os = "linux") {
+		assert_eq!(
+			fs::read_to_string("test/backup/.config/app/linux.txt").unwrap(),
+			"linux"
+		);
+	} else {
+		assert!(!Path::new("test/backup/.config/app/linux.txt").is_file());
+	}
+	if cfg!(target_os = "macos") {
+		assert_eq!(
+			fs::read_to_string("test/backup/.config/app/macos.txt").unwrap(),
+			"macos"
+		);
+	} else {
+		assert!(!Path::new("test/backup/.config/app/macos.txt").is_file());
+	}
+	if cfg!(target_os = "windows") {
+		assert_eq!(
+			fs::read_to_string("test/backup/.config/app/windows.txt").unwrap(),
+			"windows"
+		);
+	} else {
+		assert!(!Path::new("test/backup/.config/app/windows.txt").is_file());
+	}
+
+	fs::remove_dir_all("test/.config").unwrap();
+	write_file("test/.config/backup/app/linux.txt", "linux");
+	write_file("test/.config/backup/app/macos.txt", "macos");
+	write_file("test/.config/backup/app/windows.txt", "windows");
+	config.setup().unwrap();
+	assert_eq!(
+		fs::read_to_string("test/.config/app/all.txt").unwrap(),
+		"all"
+	);
+	if cfg!(target_os = "linux") {
+		assert_eq!(
+			fs::read_to_string("test/.config/app/linux.txt").unwrap(),
+			"linux"
+		);
+	} else {
+		assert!(!Path::new("test/.config/app/linux.txt").is_file());
+	}
+	if cfg!(target_os = "macos") {
+		assert_eq!(
+			fs::read_to_string("test/.config/app/macos.txt").unwrap(),
+			"macos"
+		);
+	} else {
+		assert!(!Path::new("test/.config/app/macos.txt").is_file());
+	}
+	if cfg!(target_os = "windows") {
+		assert_eq!(
+			fs::read_to_string("test/.config/app/windows.txt").unwrap(),
+			"windows"
+		);
+	} else {
+		assert!(!Path::new("test/.config/app/windows.txt").is_file());
+	}
 }

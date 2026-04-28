@@ -10,22 +10,38 @@ use std::{
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct App {
-	// pub name: String,
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub files: Vec<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
+	pub files_linux: Vec<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
+	pub files_macos: Vec<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
+	pub files_windows: Vec<PathBuf>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub ignore: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_backup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_backup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_setup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_setup: Vec<String>,
@@ -44,13 +60,28 @@ impl App {
 		Ok(ret)
 	}
 
+	/// Return all files to be backed up, including OS-specific files
+	#[must_use]
+	pub fn get_files(&self) -> Vec<PathBuf> {
+		let mut ret = self.files.clone();
+		if cfg!(target_os = "linux") {
+			ret.extend(self.files_linux.clone());
+		} else if cfg!(target_os = "macos") {
+			ret.extend(self.files_macos.clone());
+		} else if cfg!(target_os = "windows") {
+			ret.extend(self.files_windows.clone());
+		}
+
+		ret
+	}
+
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn backup(&self, config: &Config) -> Result<()> {
 		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = &config.backup_dir;
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		for src in &self.files {
+		for src in &self.get_files() {
 			if !src.starts_with(&dotfile_root) {
 				return Err(config_error!(
 					"the file ({}) is expected to be under the dotfile root ({})",
@@ -98,7 +129,7 @@ impl App {
 		let backup_dir = &config.backup_dir;
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		for dest in &self.files {
+		for dest in &self.get_files() {
 			if !dest.starts_with(&dotfile_root) {
 				return Err(config_error!(
 					"the file ({}) is expected to be under the dotfile root ({})",
