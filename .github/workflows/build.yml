@@ -62,9 +62,14 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
       - name: Lint code
+        if: matrix.os == 'ubuntu-latest'
         run: cargo clippy
       - name: Check code style
+        if: matrix.os == 'ubuntu-latest'
         run: cargo fmt --check
+      - name: Spell check
+        if: matrix.os == 'ubuntu-latest'
+        uses: crate-ci/typos@v1
 
   release:
     runs-on: ubuntu-latest
