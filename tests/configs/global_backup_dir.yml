@@ -1,0 +1,8 @@
+dotfile_root: test
+backup_dir: test/backup
+backup_dir_linux: test/backup_linux
+backup_dir_macos: test/backup_macos
+backup_dir_windows: test/backup_windows
+apps:
+  app:
+    files: [test/.config/app.txt]

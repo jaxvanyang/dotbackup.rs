@@ -39,22 +39,41 @@ pub struct Config {
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub dotfile_root: Option<PathBuf>,
+
 	pub backup_dir: PathBuf,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_linux: Option<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_macos: Option<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_windows: Option<PathBuf>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub ignore: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "BTreeMap::is_empty")]
 	pub apps: BTreeMap<String, App>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_backup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_backup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub pre_setup: Vec<String>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub post_setup: Vec<String>,
@@ -77,12 +96,35 @@ impl Config {
 		Self::try_from(content.as_str())
 	}
 
+	/// Run expanduser for all file paths
 	pub fn expanduser(&mut self) {
+		self.dotfile_root = self.dotfile_root.as_ref().map(expanduser);
 		self.backup_dir = expanduser(&self.backup_dir);
+		self.backup_dir_linux = self.backup_dir_linux.as_ref().map(expanduser);
+		self.backup_dir_macos = self.backup_dir_macos.as_ref().map(expanduser);
+		self.backup_dir_windows = self.backup_dir_windows.as_ref().map(expanduser);
+
 		for app in self.apps.values_mut() {
-			for file in &mut app.files {
-				*file = expanduser(file);
-			}
+			app.expanduser();
+		}
+	}
+
+	#[must_use]
+	pub fn get_backup_dir(&self) -> &PathBuf {
+		if cfg!(target_os = "linux")
+			&& let Some(path) = self.backup_dir_linux.as_ref()
+		{
+			path
+		} else if cfg!(target_os = "macos")
+			&& let Some(path) = self.backup_dir_macos.as_ref()
+		{
+			path
+		} else if cfg!(target_os = "windows")
+			&& let Some(path) = self.backup_dir_windows.as_ref()
+		{
+			path
+		} else {
+			&self.backup_dir
 		}
 	}
 
@@ -112,7 +154,7 @@ impl Config {
 	}
 
 	pub fn backup(&self) -> Result<()> {
-		let backup_dir = &self.backup_dir;
+		let backup_dir = self.get_backup_dir();
 		let selected_apps = self.get_selected_apps();
 
 		run_hooks(&self.pre_backup, backup_dir, "pre-backup hooks")?;
@@ -143,7 +185,7 @@ impl Config {
 	}
 
 	pub fn setup(&self) -> Result<()> {
-		let backup_dir = &self.backup_dir;
+		let backup_dir = self.get_backup_dir();
 		let selected_apps = self.get_selected_apps();
 
 		run_hooks(&self.pre_setup, backup_dir, "pre-setup hooks")?;
@@ -206,6 +248,7 @@ impl TryFrom<&str> for Config {
 	type Error = Error;
 	fn try_from(value: &str) -> Result<Self> {
 		let mut config: Self = yaml_serde::from_str(value).map_err(|e| config_error!("{e}"))?;
+		// TODO: delay expanduser to pre-using stage
 		config.expanduser();
 		Ok(config)
 	}

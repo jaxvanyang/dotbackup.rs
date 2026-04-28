@@ -13,7 +13,16 @@ _dotfile_root_
 	relative paths to store dotfile backups. The default is the home directory.
 
 _backup_dir_
-	Required. A string. The directory where backup files are stored.
+	*Required*. A string. The directory where backup files are stored.
+
+_backup_dir_linux_
+	A string. The directory where backup files are stored on Linux systems.
+
+_backup_dir_macos_
+	A string. The directory where backup files are stored on macOS.
+
+_backup_dir_windows_
+	A string. The directory where backup files are stored on Windows.
 
 _clean_
 	A boolean. Whether to delete files in destination path before backup and
@@ -23,6 +32,21 @@ _ignore_
 	A list of glob strings. The global ignored file patterns. Files that matches
 	one of these patterns will be ignored. But files that are directly specified
 	in _apps.<app>.files_ are not ignored.
+
+_apps.<app>.backup_dir_
+	A string. The directory where backup files are stored, only for this app.
+
+_apps.<app>.backup_dir_linux_
+	A string. The directory where backup files are stored, only for this app on
+	Linux systems.
+
+_apps.<app>.backup_dir_macos_
+	A string. The directory where backup files are stored, only for this app on
+	macOS.
+
+_apps.<app>.backup_dir_windows_
+	A string. The directory where backup files are stored, only for this app on
+	Windows.
 
 _apps.<app>.files_
 	A list of path strings. The files to be backed up of the application _<app>_

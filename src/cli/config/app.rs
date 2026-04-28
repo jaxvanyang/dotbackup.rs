@@ -1,5 +1,7 @@
 use super::Config;
-use crate::{arg_error, config_error, copy_dir_all, error::Result, log, sys_error, warn};
+use crate::{
+	arg_error, config_error, copy_dir_all, error::Result, expanduser, log, sys_error, warn,
+};
 use glob::Pattern;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,6 +12,22 @@ use std::{
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct App {
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir: Option<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_linux: Option<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_macos: Option<PathBuf>,
+
+	#[serde(default)]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub backup_dir_windows: Option<PathBuf>,
+
 	#[serde(default)]
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub files: Vec<PathBuf>,
@@ -48,6 +66,27 @@ pub struct App {
 }
 
 impl App {
+	/// Run expanduser for all file paths
+	pub fn expanduser(&mut self) {
+		self.backup_dir = self.backup_dir.as_ref().map(expanduser);
+		self.backup_dir_linux = self.backup_dir_linux.as_ref().map(expanduser);
+		self.backup_dir_macos = self.backup_dir_macos.as_ref().map(expanduser);
+		self.backup_dir_windows = self.backup_dir_windows.as_ref().map(expanduser);
+
+		for file in &mut self.files {
+			*file = expanduser(file);
+		}
+		for file in &mut self.files_linux {
+			*file = expanduser(file);
+		}
+		for file in &mut self.files_macos {
+			*file = expanduser(file);
+		}
+		for file in &mut self.files_windows {
+			*file = expanduser(file);
+		}
+	}
+
 	fn merge_patterns(local: &Vec<String>, global: &Vec<String>) -> Result<Vec<Pattern>> {
 		let mut ret = Vec::new();
 		for s in local {
@@ -58,6 +97,26 @@ impl App {
 		}
 
 		Ok(ret)
+	}
+
+	#[must_use]
+	pub fn get_app_backup_dir(&self) -> &Option<PathBuf> {
+		if cfg!(target_os = "linux") && self.backup_dir_linux.is_some() {
+			&self.backup_dir_linux
+		} else if cfg!(target_os = "macos") && self.backup_dir_macos.is_some() {
+			&self.backup_dir_macos
+		} else if cfg!(target_os = "windows") && self.backup_dir_windows.is_some() {
+			&self.backup_dir_windows
+		} else {
+			&self.backup_dir
+		}
+	}
+
+	#[must_use]
+	pub fn get_backup_dir<'a>(&'a self, config: &'a Config) -> &'a PathBuf {
+		self.get_app_backup_dir()
+			.as_ref()
+			.unwrap_or(config.get_backup_dir())
 	}
 
 	/// Return all files to be backed up, including OS-specific files
@@ -78,7 +137,7 @@ impl App {
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn backup(&self, config: &Config) -> Result<()> {
 		let dotfile_root = config.get_dotfile_root();
-		let backup_dir = &config.backup_dir;
+		let backup_dir = self.get_backup_dir(config);
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for src in &self.get_files() {
@@ -126,7 +185,7 @@ impl App {
 	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
 	pub fn setup(&self, config: &Config) -> Result<()> {
 		let dotfile_root = config.get_dotfile_root();
-		let backup_dir = &config.backup_dir;
+		let backup_dir = self.get_backup_dir(config);
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for dest in &self.get_files() {

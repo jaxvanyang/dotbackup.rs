@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 ///
 /// Will panic if home directory is unknown
 #[must_use]
-pub fn expanduser(path: &Path) -> PathBuf {
-	let mut ret = path.to_path_buf();
+pub fn expanduser<T: AsRef<Path>>(path: &T) -> PathBuf {
+	let mut ret = path.as_ref().to_path_buf();
 
 	if ret.starts_with("~") {
 		let home = home_dir().expect("home directory is unknown");
