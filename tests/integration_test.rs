@@ -260,8 +260,11 @@ fn test_app_backup_dir() {
 	assert_eq!(fs::read_to_string("test/.config/app_b.txt").unwrap(), "b");
 }
 
+// Disable this on Windows, because setting home directory on Windows needs
+// changing the user's profile
 #[test]
 #[serial]
+#[cfg(not(target_os = "windows"))]
 fn test_expandhome() {
 	let home = env::current_dir().unwrap().join("test");
 	set_home(&home);
