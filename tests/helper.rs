@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{env, fs, path::Path};
 
 /// Make an empty directory "test"
 ///
@@ -20,4 +20,12 @@ pub fn write_file(path: &str, text: &str) {
 	}
 
 	fs::write(path, text).unwrap();
+}
+
+pub fn set_home<T: AsRef<Path>>(path: &T) {
+	unsafe {
+		env::set_var("HOME", path.as_ref());
+	}
+
+	assert_eq!(dirs::home_dir().unwrap(), path.as_ref());
 }

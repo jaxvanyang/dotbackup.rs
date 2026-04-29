@@ -1,11 +1,14 @@
 use dirs::home_dir;
 use std::path::{Path, PathBuf};
 
+/// Return the path with an initial component of `~` replaced by the user's home
+/// directory.
+///
 /// # Panics
 ///
 /// Will panic if home directory is unknown
 #[must_use]
-pub fn expanduser<T: AsRef<Path>>(path: &T) -> PathBuf {
+pub fn expandhome<T: AsRef<Path>>(path: &T) -> PathBuf {
 	let mut ret = path.as_ref().to_path_buf();
 
 	if ret.starts_with("~") {

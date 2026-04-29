@@ -1,8 +1,8 @@
 #[macro_use]
 pub mod log;
-pub mod expanduser;
+pub mod expandhome;
 
-pub use expanduser::*;
+pub use expandhome::*;
 
 use crate::{error::Result, sys_error};
 use glob::Pattern;

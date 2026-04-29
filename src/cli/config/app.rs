@@ -1,6 +1,6 @@
 use super::Config;
 use crate::{
-	arg_error, config_error, copy_dir_all, error::Result, expanduser, log, sys_error, warn,
+	arg_error, config_error, copy_dir_all, error::Result, expandhome, log, sys_error, warn,
 };
 use glob::Pattern;
 use serde::{Deserialize, Serialize};
@@ -66,27 +66,6 @@ pub struct App {
 }
 
 impl App {
-	/// Run expanduser for all file paths
-	pub fn expanduser(&mut self) {
-		self.backup_dir = self.backup_dir.as_ref().map(expanduser);
-		self.backup_dir_linux = self.backup_dir_linux.as_ref().map(expanduser);
-		self.backup_dir_macos = self.backup_dir_macos.as_ref().map(expanduser);
-		self.backup_dir_windows = self.backup_dir_windows.as_ref().map(expanduser);
-
-		for file in &mut self.files {
-			*file = expanduser(file);
-		}
-		for file in &mut self.files_linux {
-			*file = expanduser(file);
-		}
-		for file in &mut self.files_macos {
-			*file = expanduser(file);
-		}
-		for file in &mut self.files_windows {
-			*file = expanduser(file);
-		}
-	}
-
 	fn merge_patterns(local: &Vec<String>, global: &Vec<String>) -> Result<Vec<Pattern>> {
 		let mut ret = Vec::new();
 		for s in local {
@@ -99,9 +78,10 @@ impl App {
 		Ok(ret)
 	}
 
+	/// Return expanded app-level `backup_dir`
 	#[must_use]
-	pub fn get_app_backup_dir(&self) -> &Option<PathBuf> {
-		if cfg!(target_os = "linux") && self.backup_dir_linux.is_some() {
+	pub fn get_app_backup_dir(&self) -> Option<PathBuf> {
+		let path = if cfg!(target_os = "linux") && self.backup_dir_linux.is_some() {
 			&self.backup_dir_linux
 		} else if cfg!(target_os = "macos") && self.backup_dir_macos.is_some() {
 			&self.backup_dir_macos
@@ -109,14 +89,15 @@ impl App {
 			&self.backup_dir_windows
 		} else {
 			&self.backup_dir
-		}
+		};
+
+		path.as_ref().map(expandhome)
 	}
 
+	/// Return expanded `backup_dir`
 	#[must_use]
-	pub fn get_backup_dir<'a>(&'a self, config: &'a Config) -> &'a PathBuf {
-		self.get_app_backup_dir()
-			.as_ref()
-			.unwrap_or(config.get_backup_dir())
+	pub fn get_backup_dir(&self, config: &Config) -> PathBuf {
+		self.get_app_backup_dir().unwrap_or(config.get_backup_dir())
 	}
 
 	/// Return all files to be backed up, including OS-specific files
@@ -141,6 +122,7 @@ impl App {
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for src in &self.get_files() {
+			let src = expandhome(src);
 			if !src.starts_with(&dotfile_root) {
 				return Err(config_error!(
 					"the file ({}) is expected to be under the dotfile root ({})",
@@ -189,6 +171,7 @@ impl App {
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
 		for dest in &self.get_files() {
+			let dest = expandhome(dest);
 			if !dest.starts_with(&dotfile_root) {
 				return Err(config_error!(
 					"the file ({}) is expected to be under the dotfile root ({})",
@@ -212,9 +195,9 @@ impl App {
 			if config.clean && dest.exists() {
 				log!(config.verbose, "LOG: clean: remove {dest:?}");
 				if dest.is_file() {
-					remove_file(dest).map_err(|e| sys_error!("remove file error: {e}"))?;
+					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
-					remove_dir_all(dest).map_err(|e| sys_error!("remove directory error: {e}"))?;
+					remove_dir_all(&dest).map_err(|e| sys_error!("remove directory error: {e}"))?;
 				}
 			}
 

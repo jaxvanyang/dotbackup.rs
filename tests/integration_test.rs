@@ -3,7 +3,7 @@ mod helper;
 use dotbackup::cli::Config;
 use helper::*;
 use serial_test::serial;
-use std::{fs, path::Path};
+use std::{env, fs, path::Path};
 
 #[test]
 fn test_empty() {
@@ -258,4 +258,26 @@ fn test_app_backup_dir() {
 	config.setup().unwrap();
 	assert_eq!(fs::read_to_string("test/.config/app_a.txt").unwrap(), "a");
 	assert_eq!(fs::read_to_string("test/.config/app_b.txt").unwrap(), "b");
+}
+
+#[test]
+#[serial]
+fn test_expandhome() {
+	let home = env::current_dir().unwrap().join("test");
+	set_home(&home);
+
+	let config = Config::try_from(include_str!("configs/expandhome.yml")).unwrap();
+	assert_eq!(config.get_dotfile_root(), home);
+
+	cleanup();
+	write_file("test/.config/app.txt", "app");
+	config.backup().unwrap();
+	assert_eq!(
+		fs::read_to_string("test/backup/.config/app.txt").unwrap(),
+		"app"
+	);
+
+	fs::remove_dir_all("test/.config").unwrap();
+	config.setup().unwrap();
+	assert_eq!(fs::read_to_string("test/.config/app.txt").unwrap(), "app");
 }

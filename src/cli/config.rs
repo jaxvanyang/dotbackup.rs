@@ -6,7 +6,7 @@ use dirs::home_dir;
 use crate::{
 	arg_error, config_error,
 	error::{Error, Result},
-	expanduser, info, run_hooks, sys_error,
+	expandhome, info, run_hooks, sys_error,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -96,22 +96,10 @@ impl Config {
 		Self::try_from(content.as_str())
 	}
 
-	/// Run expanduser for all file paths
-	pub fn expanduser(&mut self) {
-		self.dotfile_root = self.dotfile_root.as_ref().map(expanduser);
-		self.backup_dir = expanduser(&self.backup_dir);
-		self.backup_dir_linux = self.backup_dir_linux.as_ref().map(expanduser);
-		self.backup_dir_macos = self.backup_dir_macos.as_ref().map(expanduser);
-		self.backup_dir_windows = self.backup_dir_windows.as_ref().map(expanduser);
-
-		for app in self.apps.values_mut() {
-			app.expanduser();
-		}
-	}
-
+	/// Return expanded `backup_dir`
 	#[must_use]
-	pub fn get_backup_dir(&self) -> &PathBuf {
-		if cfg!(target_os = "linux")
+	pub fn get_backup_dir(&self) -> PathBuf {
+		let path = if cfg!(target_os = "linux")
 			&& let Some(path) = self.backup_dir_linux.as_ref()
 		{
 			path
@@ -125,7 +113,9 @@ impl Config {
 			path
 		} else {
 			&self.backup_dir
-		}
+		};
+
+		expandhome(path)
 	}
 
 	#[must_use]
@@ -137,14 +127,16 @@ impl Config {
 		}
 	}
 
+	/// Return expanded `dotfile_root`
+	///
 	/// # Panics
 	///
 	/// Will panic if home directory is unknown
 	#[must_use]
 	pub fn get_dotfile_root(&self) -> PathBuf {
 		self.dotfile_root
-			.clone()
-			.unwrap_or(home_dir().expect("home directory is unknown"))
+			.as_ref()
+			.map_or(home_dir().expect("home directory is unknown"), expandhome)
 	}
 
 	pub fn list_apps(&self) {
@@ -154,7 +146,7 @@ impl Config {
 	}
 
 	pub fn backup(&self) -> Result<()> {
-		let backup_dir = self.get_backup_dir();
+		let backup_dir = &self.get_backup_dir();
 		let selected_apps = self.get_selected_apps();
 
 		run_hooks(&self.pre_backup, backup_dir, "pre-backup hooks")?;
@@ -185,7 +177,7 @@ impl Config {
 	}
 
 	pub fn setup(&self) -> Result<()> {
-		let backup_dir = self.get_backup_dir();
+		let backup_dir = &self.get_backup_dir();
 		let selected_apps = self.get_selected_apps();
 
 		run_hooks(&self.pre_setup, backup_dir, "pre-setup hooks")?;
@@ -247,9 +239,7 @@ impl std::fmt::Display for Config {
 impl TryFrom<&str> for Config {
 	type Error = Error;
 	fn try_from(value: &str) -> Result<Self> {
-		let mut config: Self = yaml_serde::from_str(value).map_err(|e| config_error!("{e}"))?;
-		// TODO: delay expanduser to pre-using stage
-		config.expanduser();
+		let config: Self = yaml_serde::from_str(value).map_err(|e| config_error!("{e}"))?;
 		Ok(config)
 	}
 }

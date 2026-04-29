@@ -1,0 +1,5 @@
+dotfile_root: "~"
+backup_dir: test/backup
+apps:
+  app:
+    files: [~/.config/app.txt]
