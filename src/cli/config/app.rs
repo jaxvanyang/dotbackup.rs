@@ -1,6 +1,10 @@
 use super::Config;
 use crate::{
-	arg_error, config_error, copy_dir_all, error::Result, expandhome, log, sys_error, warn,
+	arg_error,
+	colors::{GREEN, RESET},
+	config_error, copy_dir_all,
+	error::Result,
+	expandhome, info, log, sys_error, warn,
 };
 use glob::Pattern;
 use serde::{Deserialize, Serialize};
@@ -116,12 +120,14 @@ impl App {
 	}
 
 	#[allow(clippy::missing_panics_doc)]
-	pub fn backup(&self, config: &Config) -> Result<()> {
+	pub fn backup(&self, name: &String, config: &Config) -> Result<()> {
 		let files = self.get_files();
+		let highlight_name = format!("{GREEN}{name}{RESET}");
 		if files.is_empty() {
-			log!(config.verbose, "no file should be copy");
+			info!("Skip backup for {highlight_name}: no file should be copy");
 			return Ok(());
 		}
+		info!("Starting backup for {highlight_name}");
 
 		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = self.get_backup_dir(config);
@@ -171,12 +177,14 @@ impl App {
 	}
 
 	#[allow(clippy::missing_panics_doc)]
-	pub fn setup(&self, config: &Config) -> Result<()> {
+	pub fn setup(&self, name: &String, config: &Config) -> Result<()> {
 		let files = self.get_files();
+		let highlight_name = format!("{GREEN}{name}{RESET}");
 		if files.is_empty() {
-			log!(config.verbose, "no file should be copy");
+			info!("Skip setup for {highlight_name}: no file should be copy");
 			return Ok(());
 		}
+		info!("Starting setup for {highlight_name}");
 
 		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = self.get_backup_dir(config);

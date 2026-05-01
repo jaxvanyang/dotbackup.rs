@@ -7,7 +7,7 @@ use crate::{
 	arg_error, config_error,
 	consts::colors::{GREEN, RESET},
 	error::{Error, Result},
-	expandhome, info, run_hooks, sys_error,
+	expandhome, run_hooks, sys_error,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -164,9 +164,8 @@ impl Config {
 				backup_dir,
 				&format!("pre-backup hooks for {highlight_name}"),
 			)?;
-			info!("Starting backup for {highlight_name}");
 
-			self.apps[name].backup(self)?;
+			self.apps[name].backup(name, self)?;
 
 			run_hooks(
 				&app.post_backup,
@@ -196,9 +195,8 @@ impl Config {
 				backup_dir,
 				&format!("pre-setup hooks for {highlight_name}"),
 			)?;
-			info!("Starting setup for {highlight_name}");
 
-			self.apps[name].setup(self)?;
+			self.apps[name].setup(name, self)?;
 
 			run_hooks(
 				&app.post_setup,
