@@ -5,6 +5,7 @@ use dirs::home_dir;
 
 use crate::{
 	arg_error, config_error,
+	consts::colors::{GREEN, RESET},
 	error::{Error, Result},
 	expandhome, info, run_hooks, sys_error,
 };
@@ -156,20 +157,21 @@ impl Config {
 				return Err(arg_error!("app not found: {}", name));
 			}
 			let app = &self.apps[name];
+			let highlight_name = format!("{GREEN}{name}{RESET}");
 
 			run_hooks(
 				&app.pre_backup,
 				backup_dir,
-				&format!("pre-backup hooks for {name}"),
+				&format!("pre-backup hooks for {highlight_name}"),
 			)?;
-			info!("Starting backup for {name}...");
+			info!("Starting backup for {highlight_name}");
 
 			self.apps[name].backup(self)?;
 
 			run_hooks(
 				&app.post_backup,
 				backup_dir,
-				&format!("post-backup hooks for {name}"),
+				&format!("post-backup hooks for {highlight_name}"),
 			)?;
 		}
 
@@ -187,20 +189,21 @@ impl Config {
 				return Err(arg_error!("app not found: {}", name));
 			}
 			let app = &self.apps[name];
+			let highlight_name = format!("{GREEN}{name}{RESET}");
 
 			run_hooks(
 				&app.pre_setup,
 				backup_dir,
-				&format!("pre-setup hooks for {name}"),
+				&format!("pre-setup hooks for {highlight_name}"),
 			)?;
-			info!("Starting setup for {name}...");
+			info!("Starting setup for {highlight_name}");
 
 			self.apps[name].setup(self)?;
 
 			run_hooks(
 				&app.post_setup,
 				backup_dir,
-				&format!("post-setup hooks for {name}"),
+				&format!("post-setup hooks for {highlight_name}"),
 			)?;
 		}
 

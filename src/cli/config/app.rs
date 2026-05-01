@@ -115,13 +115,19 @@ impl App {
 		ret
 	}
 
-	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
+	#[allow(clippy::missing_panics_doc)]
 	pub fn backup(&self, config: &Config) -> Result<()> {
+		let files = self.get_files();
+		if files.is_empty() {
+			log!(config.verbose, "no file should be copy");
+			return Ok(());
+		}
+
 		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = self.get_backup_dir(config);
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		for src in &self.get_files() {
+		for src in &files {
 			let src = expandhome(src);
 			if !src.starts_with(&dotfile_root) {
 				return Err(config_error!(
@@ -132,7 +138,7 @@ impl App {
 			}
 
 			if !src.exists() {
-				warn!("LOG: skip: file not found: {src:?}");
+				warn!("skip: file not found: {}", src.display());
 				continue;
 			}
 
@@ -140,11 +146,11 @@ impl App {
 			if let Some(dest_dir) = dest.parent()
 				&& !dest_dir.exists()
 			{
-				log!(config.verbose, "LOG: mkdir {dest_dir:?}");
+				log!(config.verbose, "mkdir {}", dest_dir.display());
 				create_dir_all(dest_dir).map_err(|e| sys_error!("create directory error: {e}"))?;
 			}
 			if config.clean && dest.exists() {
-				log!(config.verbose, "LOG: clean: remove {dest:?}");
+				log!(config.verbose, "clean: remove {}", dest.display());
 				if dest.is_file() {
 					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -152,7 +158,7 @@ impl App {
 				}
 			}
 
-			eprintln!("  {src:?} -> {dest:?}");
+			eprintln!("  {} -> {}", src.display(), dest.display());
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {
@@ -164,13 +170,19 @@ impl App {
 		Ok(())
 	}
 
-	#[allow(clippy::unnecessary_debug_formatting, clippy::missing_panics_doc)]
+	#[allow(clippy::missing_panics_doc)]
 	pub fn setup(&self, config: &Config) -> Result<()> {
+		let files = self.get_files();
+		if files.is_empty() {
+			log!(config.verbose, "no file should be copy");
+			return Ok(());
+		}
+
 		let dotfile_root = config.get_dotfile_root();
 		let backup_dir = self.get_backup_dir(config);
 		let ignore = App::merge_patterns(&self.ignore, &config.ignore)?;
 
-		for dest in &self.get_files() {
+		for dest in &files {
 			let dest = expandhome(dest);
 			if !dest.starts_with(&dotfile_root) {
 				return Err(config_error!(
@@ -182,18 +194,18 @@ impl App {
 
 			let src = backup_dir.join(dest.strip_prefix(&dotfile_root).unwrap());
 			if !src.exists() {
-				warn!("LOG: skip: file not found: {src:?}");
+				warn!("skip: file not found: {}", src.display());
 				continue;
 			}
 
 			if let Some(dest_dir) = dest.parent()
 				&& !dest_dir.exists()
 			{
-				log!(config.verbose, "LOG: mkdir: {dest_dir:?}");
+				log!(config.verbose, "mkdir: {}", dest_dir.display());
 				create_dir_all(dest_dir).map_err(|e| sys_error!("create directory error: {e}"))?;
 			}
 			if config.clean && dest.exists() {
-				log!(config.verbose, "LOG: clean: remove {dest:?}");
+				log!(config.verbose, "clean: remove {}", dest.display());
 				if dest.is_file() {
 					remove_file(&dest).map_err(|e| sys_error!("remove file error: {e}"))?;
 				} else {
@@ -201,7 +213,7 @@ impl App {
 				}
 			}
 
-			eprintln!("  {src:?} -> {dest:?}");
+			eprintln!("  {} -> {}", src.display(), dest.display());
 			if src.is_file() {
 				fs::copy(src, dest).map_err(|e| sys_error!("copy file error: {e}"))?;
 			} else {

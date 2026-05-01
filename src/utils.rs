@@ -29,7 +29,7 @@ pub fn copy_dir_all(
 
 		for pattern in ignore {
 			if pattern.matches_path(&PathBuf::from(path.file_name().unwrap())) {
-				log!(verbose, "LOG: ignore {}", path.display());
+				log!(verbose, "ignore {}", path.display());
 				is_ignored = true;
 				break;
 			}
@@ -49,7 +49,7 @@ pub fn copy_dir_all(
 		} else {
 			let from = entry.path();
 			let to = to.as_ref().join(entry.file_name());
-			log!(verbose, "LOG: copy {from:?} -> {to:?}");
+			log!(verbose, "copy {} -> {}", from.display(), to.display());
 			fs::copy(from, to)?;
 		}
 	}
@@ -89,7 +89,7 @@ pub fn run_hook(script: &str, backup_dir: &Path) -> Result<()> {
 pub fn run_hooks(hooks: &[String], backup_dir: &Path, name: &str) -> Result<()> {
 	let n = hooks.len();
 	for (i, hook) in hooks.iter().enumerate() {
-		info!("Running {name} ({}/{n})...", i + 1);
+		info!("Running {name} [{}/{n}]", i + 1);
 		run_hook(hook, backup_dir)?;
 	}
 

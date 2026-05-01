@@ -1,36 +1,33 @@
 #[macro_export]
 macro_rules! error {
 	() => {
-		eprint!("\n")
+		eprintln!();
 	};
 	($($arg:tt)*) => {{
-		eprint!("{}", $crate::consts::colors::RED);
+		eprint!("{}==>{} ", $crate::consts::colors::RED, $crate::consts::colors::RESET);
 		eprintln!($($arg)*);
-		eprint!("{}", $crate::consts::colors::RESET);
 	}};
 }
 
 #[macro_export]
 macro_rules! warn {
 	() => {
-		eprint!("\n")
+		eprintln!();
 	};
 	($($arg:tt)*) => {{
-		eprint!("{}", $crate::consts::colors::YELLOW);
+		eprint!("{}==>{} ", $crate::consts::colors::YELLOW, $crate::consts::colors::RESET);
 		eprintln!($($arg)*);
-		eprint!("{}", $crate::consts::colors::RESET);
 	}};
 }
 
 #[macro_export]
 macro_rules! info {
 	() => {
-		eprint!("\n")
+		eprintln!();
 	};
 	($($arg:tt)*) => {{
-		eprint!("{}", $crate::consts::colors::GREEN);
+		eprint!("{}==>{} ", $crate::consts::colors::GREEN, $crate::consts::colors::RESET);
 		eprintln!($($arg)*);
-		eprint!("{}", $crate::consts::colors::RESET);
 	}};
 }
 
@@ -38,14 +35,13 @@ macro_rules! info {
 macro_rules! log {
 	($verbose:expr) => {
 		if $verbose {
-			eprint!("\n")
+			eprintln!();
 		}
 	};
 	($verbose:expr, $($arg:tt)*) => {{
 		if $verbose {
-			eprint!("{}", $crate::consts::colors::CYAN);
-			eprintln!($($arg)*);
-			eprint!("{}", $crate::consts::colors::RESET);
+		eprint!("{}==>{} ", $crate::consts::colors::CYAN, $crate::consts::colors::RESET);
+		eprintln!($($arg)*);
 		}
 	}};
 }
