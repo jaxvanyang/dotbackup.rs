@@ -119,12 +119,14 @@ impl App {
 		ret
 	}
 
-	#[allow(clippy::missing_panics_doc)]
+	/// # Panics
+	///
+	/// Should not panic
 	pub fn backup(&self, name: &String, config: &Config) -> Result<()> {
 		let files = self.get_files();
 		let highlight_name = format!("{GREEN}{name}{RESET}");
 		if files.is_empty() {
-			info!("Skip backup for {highlight_name}: no file should be copy");
+			info!("Skip backup for {highlight_name}: no file configured");
 			return Ok(());
 		}
 		info!("Starting backup for {highlight_name}");
@@ -176,12 +178,14 @@ impl App {
 		Ok(())
 	}
 
-	#[allow(clippy::missing_panics_doc)]
+	/// # Panics
+	///
+	/// Should not panic
 	pub fn setup(&self, name: &String, config: &Config) -> Result<()> {
 		let files = self.get_files();
 		let highlight_name = format!("{GREEN}{name}{RESET}");
 		if files.is_empty() {
-			info!("Skip setup for {highlight_name}: no file should be copy");
+			info!("Skip setup for {highlight_name}: no file configured");
 			return Ok(());
 		}
 		info!("Starting setup for {highlight_name}");
