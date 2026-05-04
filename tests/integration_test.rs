@@ -1,6 +1,6 @@
 mod helper;
 
-use dotbackup::cli::Config;
+use dotbackup::{cli::Config, error};
 use helper::*;
 use serial_test::serial;
 use std::{env, fs, path::Path};
@@ -283,4 +283,19 @@ fn test_expandhome() {
 	fs::remove_dir_all("test/.config").unwrap();
 	config.setup().unwrap();
 	assert_eq!(fs::read_to_string("test/.config/app.txt").unwrap(), "app");
+}
+
+#[test]
+#[serial]
+fn test_fail_exit() {
+	let config = Config::try_from(include_str!("configs/fail_exit.yml")).unwrap();
+
+	cleanup();
+	write_file("test/.config/app.txt", "app");
+	assert!(
+		config
+			.backup()
+			.is_err_and(|e| e.r#type == error::Type::System)
+	);
+	assert!(!Path::new("test/backup/.config/app.txt").is_file());
 }

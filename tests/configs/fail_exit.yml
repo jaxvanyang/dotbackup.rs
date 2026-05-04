@@ -1,0 +1,7 @@
+dotfile_root: test
+backup_dir: test/backup
+apps:
+  app:
+    pre_backup:
+      - false
+    files: [test/.config/app.txt]
